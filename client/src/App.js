@@ -7,13 +7,17 @@ import SettingsPage from "./pages/SettingsPage";
 import { Toaster } from "react-hot-toast";
 import { useContext } from "react";
 import { AuthContext } from "./context/authContext";
+import VideoCall from "./components/VideoCall";
+import CallNotification from "./components/CallNotification";
 
 function App() {
   const { authUser } = useContext(AuthContext);
 
   return (
-    <div className=" bg-[url('../src/chat-assets/bgImage.svg')] bg-contain">
+    <div className="bg-[url('../src/chat-assets/bgImage.svg')] bg-contain">
       <Toaster />
+      <VideoCall />
+      <CallNotification />
       <Routes>
         <Route
           path="/"

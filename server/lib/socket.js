@@ -49,6 +49,42 @@ io.on("connection", async (socket) => {
         socket.join(`group_${groupId}`);
     });
 
+    // --- WebRTC Signaling Events ---
+
+    socket.on("callUser", (data) => {
+        // data: { userToCall: userId, signalData: offer, from: userId, name: callerName, isVideo: boolean }
+        const { userToCall, signalData, from, name, isVideo } = data;
+        // Emit to the specific user's room (handles multiple devices)
+        io.to(userToCall).emit("callUser", {
+            signal: signalData,
+            from,
+            name,
+            isVideo
+        });
+    });
+
+    socket.on("answerCall", (data) => {
+        // data: { to: callerUserId, signal: answer }
+        io.to(data.to).emit("callAccepted", data.signal);
+    });
+
+    socket.on("iceCandidate", (data) => {
+        // data: { to: otherUserId, candidate: candidate }
+        io.to(data.to).emit("iceCandidate", data.candidate);
+    });
+
+    socket.on("endCall", (data) => {
+        // data: { to: otherUserId }
+        io.to(data.to).emit("callEnded");
+    });
+
+    socket.on("rejectCall", (data) => {
+        // data: { to: callerUserId }
+        io.to(data.to).emit("callRejected");
+    });
+
+    // -------------------------------
+
     socket.on("disconnect", async () => {
         if (userId && userSocketMap[userId]) {
             userSocketMap[userId] = userSocketMap[userId].filter(id => id !== socket.id);

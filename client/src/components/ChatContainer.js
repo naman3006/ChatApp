@@ -7,6 +7,8 @@ import { AuthContext } from "../context/authContext";
 import VoiceMessage from "./VoiceMessage";
 import toast from "react-hot-toast";
 import EmojiPicker from 'emoji-picker-react';
+import { CallContext } from "../context/CallContext";
+import { Phone, Video } from "lucide-react";
 
 export const ChatContainer = () => {
   const {
@@ -32,6 +34,7 @@ export const ChatContainer = () => {
     unpinMessage,
     unblockUser
   } = useContext(ChatContext);
+  const { startCall } = useContext(CallContext);
   const { authUser, onlineUsers } = useContext(AuthContext);
 
   const isBlocked = authUser?.blockedUsers?.includes(selectedUser?._id);
@@ -386,6 +389,25 @@ export const ChatContainer = () => {
             </p>
           )}
         </div>
+
+        {!selectedGroup && (
+          <>
+            <button
+              onClick={() => startCall(selectedUser._id, selectedUser.fullName, false)}
+              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-1"
+              title="Audio Call"
+            >
+              <Phone size={20} />
+            </button>
+            <button
+              onClick={() => startCall(selectedUser._id, selectedUser.fullName, true)}
+              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-2"
+              title="Video Call"
+            >
+              <Video size={20} />
+            </button>
+          </>
+        )}
 
         <button
           onClick={() => setShowPinnedMessages(!showPinnedMessages)}

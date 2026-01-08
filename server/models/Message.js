@@ -10,13 +10,27 @@ const messageSchema = new mongoose.Schema(
     receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+    },
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
     },
 
     text: { type: String },
     image: { type: String },
     audio: { type: String },
+    pinned: { type: Boolean, default: false },
+    pinnedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    pinnedAt: { type: Date },
     seen: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
+    isSystemMessage: { type: Boolean, default: false },
+    reactions: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        emoji: { type: String, required: true },
+      },
+    ],
   },
   { timestamps: true }
 );

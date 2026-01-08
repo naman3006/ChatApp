@@ -5,16 +5,15 @@ import { RightSidebar } from "../components/RightSidebar";
 import { ChatContext } from "../context/ChatContext";
 
 export const HomePage = () => {
-  const { selectedUser } = useContext(ChatContext);
+  const { selectedUser, selectedGroup } = useContext(ChatContext);
 
   return (
-    <div className="border w-full h-screen sm:px-[15%] sm:py-[5%]">
+    <div className="w-full h-screen bg-gray-900 text-gray-100 sm:px-[5%] sm:py-[5%]">
       <div
-        className={`backdrop-blur-xl border-2 border-gray-50-600 rounded-2xl overflow-hidden h-[100%] grid grid-cols-3 relative ${
-          selectedUser
-            ? "md:d-grid-cols-[1fr_1.5fr_1fr] xl:grid-cols-[1fr_2fr_1fr"
-            : "md:grid-cols-2"
-        }`}
+        className={`w-full h-full backdrop-blur-xl bg-gray-800/40 border border-gray-700 sm:rounded-2xl overflow-hidden grid grid-cols-1 ${selectedUser || selectedGroup
+            ? "md:grid-cols-[350px_1fr_0px] lg:grid-cols-[350px_1fr_0px] xl:grid-cols-[350px_1fr_350px]"
+            : "md:grid-cols-[350px_1fr]"
+          }`}
       >
         <Sidebar />
         <ChatContainer />

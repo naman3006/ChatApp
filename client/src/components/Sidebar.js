@@ -2,8 +2,10 @@
 import React, { useContext, useEffect, useState } from "react";
 import assets from "../chat-assets/assets";
 import { useNavigate } from "react-router-dom";
+import { formatMessageTime } from "../lib/utils";
 import { AuthContext } from "../context/authContext";
 import { ChatContext } from "../context/ChatContext";
+import toast from "react-hot-toast";
 
 export const Sidebar = () => {
   const {
@@ -13,56 +15,90 @@ export const Sidebar = () => {
     setSelectedUser,
     unseenMessages,
     setUnseenMessages,
+    groups,
+    getGroups,
+    setSelectedGroup,
+    selectedGroup,
+    createGroup
   } = useContext(ChatContext);
 
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState([]);
+
   const { logout, onlineUsers } = useContext(AuthContext);
-  const [input, setInput] = useState(false);
+  const [input, setInput] = useState("");
 
   const navigate = useNavigate();
 
   const filteredUsers = input
     ? users.filter((user) =>
-        user.fullName.toLowerCase().includes(input.toLowerCase())
-      )
+      user.fullName.toLowerCase().includes(input.toLowerCase())
+    )
     : users;
 
   useEffect(() => {
     getUsers();
+    getGroups();
   }, [onlineUsers]);
+
+  const handleCreateGroup = async () => {
+    if (!groupName || selectedMembers.length === 0) return toast.error("Name and members required");
+    const success = await createGroup(groupName, selectedMembers);
+    if (success) {
+      setShowGroupModal(false);
+      setGroupName("");
+      setSelectedMembers([]);
+    }
+  };
+
+  const toggleMemberSelection = (userId) => {
+    if (selectedMembers.includes(userId)) {
+      setSelectedMembers(prev => prev.filter(id => id !== userId));
+    } else {
+      setSelectedMembers(prev => [...prev, userId]);
+    }
+  };
 
   return (
     <div
-      className={` bg-[#8185B2]/10 h-full p-5 rounded-r-xl overflow-y-scroll text-white ${
-        selectedUser ? "max-md:hidden" : ""
-      }`}
+      className={`bg-[#8185B2]/10 h-full p-5 sm:rounded-l-2xl overflow-y-scroll text-white w-full border-r border-gray-700/30 ${selectedUser || selectedGroup ? "hidden md:block" : "block"}`}
     >
       <div className="pb-5">
         <div className="flex justify-between items-center">
           <img src={assets.logo} alt="logo" className="max-w-40" />
-          <div className="relative py-2 group">
-            <img
-              src={assets.menu_icon}
-              alt="menu"
-              className="max-h-5 cursor-pointer"
-            />
-            <div className="absolute top-full right-0 z-20 w-32 p-5 rounded-md bg-[#282142] border border-gray-600 text-gray-100 hidden group-hover:block">
-              <p
-                onClick={() => navigate("/profile")}
-                className="cursor-pointer text-sm"
-              >
-                Edit Profile
-              </p>
-              <hr className="my-2 border-t border-gray-500" />
-              <p onClick={() => logout()} className="cursor-pointer text-sm">
-                Logout
-              </p>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setShowGroupModal(true)} title="Create Group" className="text-gray-400 hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>
+            </button>
+            <button onClick={() => navigate("/settings")} title="Settings" className="text-gray-400 hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+            </button>
+            <div className="relative py-2 group">
+              <img
+                src={assets.menu_icon}
+                alt="menu"
+                className="max-h-5 cursor-pointer"
+              />
+              <div className="absolute top-full right-0 z-20 w-32 p-5 rounded-md bg-[#282142] border border-gray-600 text-gray-100 hidden group-hover:block">
+                <p
+                  onClick={() => navigate("/profile")}
+                  className="cursor-pointer text-sm"
+                >
+                  Edit Profile
+                </p>
+                <hr className="my-2 border-t border-gray-500" />
+                <p onClick={() => logout()} className="cursor-pointer text-sm">
+                  Logout
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="bg-[#282142] rounded-full flex items-center gap-2 py-3 px-4 mt5">
           <img src={assets.search_icon} alt="Search" className="w-3" />
-          <input 
+          <input
             onChange={(e) => setInput(e.target.value)}
             type="text"
             className="bg-transparent border-none outline-none text-white text-xs placeholder:[#c8c8c] flex-1"
@@ -71,17 +107,38 @@ export const Sidebar = () => {
         </div>
       </div>
 
+      {/* Group List */}
+      <div className="flex flex-col mb-4">
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Groups</h3>
+        {groups.map((group) => (
+          <div
+            key={group._id}
+            onClick={() => setSelectedGroup(group)}
+            className={`flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedGroup?._id === group._id ? "bg-[#282142]/50" : ""}`}
+          >
+            <div className="w-[35px] h-[35px] rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
+              {group.name[0].toUpperCase()}
+            </div>
+            <p className="truncate">{group.name}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="flex flex-col">
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Direct Messages</h3>
         {filteredUsers.map((user, idx) => (
           <div
             onClick={() => {
               setSelectedUser(user);
-              setUnseenMessages((prev) => ({ ...prev, [user._id]: 0 }));
+              setUnseenMessages((prev) => {
+                const newUnseen = { ...prev };
+                delete newUnseen[user._id];
+                return newUnseen;
+              });
             }}
             key={idx}
-            className={`relative flex items-center gap-2 p-2 pl-4 ronded cursor-pointer max-sm:text-sm ${
-              selectedUser?._id === user._id && "bg-[#282142]/50"
-            }`}
+            className={`relative flex items-center gap-2 p-2 pl-4 ronded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id && "bg-[#282142]/50"
+              }`}
           >
             <img
               src={user?.profilePic || assets.avatar_icon}
@@ -93,17 +150,52 @@ export const Sidebar = () => {
               {onlineUsers.includes(user._id) ? (
                 <span className="text-green-400 text-xs">Online</span>
               ) : (
-                <span className="text-neutral-400 text-xs">Offline</span>
+                <span className="text-neutral-400 text-xs">
+                  {user.updatedAt ? `Last seen: ${formatMessageTime(user.updatedAt)}` : "Offline"}
+                </span>
               )}
             </div>
-            {unseenMessages[user._id] > 0 && (
+            {unseenMessages && unseenMessages[user._id] > 0 && (
               <p className="absolute top-4 right-4 text-xs h-5 w-5 flex justify-center items-center rounded-full bg-violet-500/50">
-                {setUnseenMessages[user._id]}
+                {unseenMessages[user._id]}
               </p>
             )}
           </div>
         ))}
       </div>
+
+      {/* Create Group Modal */}
+      {showGroupModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 p-6 rounded-xl w-full max-w-md">
+            <h2 className="text-xl text-white font-bold mb-4">Create New Group</h2>
+
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Group Name"
+              className="w-full bg-gray-800 text-white p-3 rounded-lg mb-4 border border-gray-700 outline-none focus:border-violet-500"
+            />
+
+            <p className="text-gray-400 text-sm mb-2">Select Members:</p>
+            <div className="max-h-48 overflow-y-auto mb-4 space-y-2">
+              {users.map(user => (
+                <div key={user._id} onClick={() => toggleMemberSelection(user._id)} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${selectedMembers.includes(user._id) ? "bg-violet-600/30 border border-violet-500" : "bg-gray-800"}`}>
+                  <img src={user.profilePic || assets.avatar_icon} className="w-8 h-8 rounded-full" alt="" />
+                  <p className="text-sm text-gray-300">{user.fullName}</p>
+                  {selectedMembers.includes(user._id) && <span className="ml-auto text-violet-400">✓</span>}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowGroupModal(false)} className="text-gray-400 hover:text-white px-4 py-2">Cancel</button>
+              <button onClick={handleCreateGroup} className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg">Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

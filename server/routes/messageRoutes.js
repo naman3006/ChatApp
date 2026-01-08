@@ -1,6 +1,6 @@
 import express from "express"
-import { protectRoute } from "../middleware/auth.js"
-import { getMessages, getUserForSidebar, markMessageAsSeen, sendMessage, updateMessage, deleteMessage } from "../controllers/messageController.js"
+import { protectRoute } from "../middleware/auth.js";
+import { deleteMessage, getMessages, getUserForSidebar, markMessageAsSeen, sendMessage, undoDeleteMessage, updateMessage, addReaction, pinMessage, unpinMessage } from "../controllers/messageController.js";
 import { validate } from "../middleware/validation.middleware.js";
 import { messageSchema } from "../lib/validators.js";
 
@@ -14,7 +14,11 @@ messageRouter.get("/:id", protectRoute, getMessages)
 messageRouter.put("/mark/:id", protectRoute, markMessageAsSeen)
 
 messageRouter.post("/send/:id", protectRoute, validate(messageSchema), sendMessage)
-messageRouter.put("/update/:id", protectRoute, updateMessage)
-messageRouter.delete("/delete/:id", protectRoute, deleteMessage)
+messageRouter.put("/:id", protectRoute, updateMessage);
+messageRouter.post("/:id/react", protectRoute, addReaction);
+messageRouter.delete("/:id", protectRoute, deleteMessage);
+messageRouter.put("/undo/:id", protectRoute, undoDeleteMessage)
+messageRouter.post("/:id/pin", protectRoute, pinMessage);
+messageRouter.post("/:id/unpin", protectRoute, unpinMessage);
 
 export default messageRouter;

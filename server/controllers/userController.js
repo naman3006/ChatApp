@@ -78,7 +78,7 @@ export const updateProfile = async (req, res) => {
     if (!profilePic) {
       updatedUser = await User.findByIdAndUpdate(
         userId,
-        { bio, fullName },
+        { bio, fullName, privacy: req.body.privacy },
         { new: true }
       );
     } else {
@@ -86,7 +86,7 @@ export const updateProfile = async (req, res) => {
 
       updatedUser = await User.findByIdAndUpdate(
         userId,
-        { profilePic: upload.secure_url, bio, fullName },
+        { profilePic: upload.secure_url, bio, fullName, privacy: req.body.privacy },
         { new: true }
       );
     }
@@ -94,5 +94,69 @@ export const updateProfile = async (req, res) => {
   } catch (err) {
     console.log(err.message);
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const blockUser = async (req, res) => {
+  try {
+    const { id: userToBlockId } = req.params;
+    const userId = req.user._id;
+
+    if (userId.toString() === userToBlockId) {
+      return res.status(400).json({ success: false, message: "Cannot block yourself" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user.blockedUsers.includes(userToBlockId)) {
+      user.blockedUsers.push(userToBlockId);
+      await user.save();
+    }
+
+    res.json({ success: true, message: "User blocked successfully", blockedUsers: user.blockedUsers });
+  } catch (error) {
+    console.log("Error in blockUser:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const unblockUser = async (req, res) => {
+  try {
+    const { id: userToUnblockId } = req.params;
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    user.blockedUsers = user.blockedUsers.filter(id => id.toString() !== userToUnblockId);
+    await user.save();
+
+    res.json({ success: true, message: "User unblocked successfully", blockedUsers: user.blockedUsers });
+  } catch (error) {
+    console.log("Error in unblockUser:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+import Report from "../models/Report.js";
+
+export const reportUser = async (req, res) => {
+  try {
+    const { id: reportedId } = req.params;
+    const { reason, description } = req.body;
+    const reporterId = req.user._id;
+
+    if (reporterId.toString() === reportedId) {
+      return res.status(400).json({ success: false, message: "Cannot report yourself" });
+    }
+
+    const newReport = await Report.create({
+      reporterId,
+      reportedId,
+      reason,
+      description
+    });
+
+    res.status(201).json({ success: true, message: "User reported successfully", report: newReport });
+  } catch (error) {
+    console.log("Error in reportUser:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

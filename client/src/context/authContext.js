@@ -7,7 +7,7 @@ import { io } from "socket.io-client";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [token, setToken] = useState(sessionStorage.getItem("token"));
   const [authUser, setAuthUser] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
@@ -21,12 +21,21 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await axiosInstance.put("/auth/check");
       if (data.success) {
-        setAuthUser(data.user);
-        connectSocket(data.user);
+        if (data.user) {
+          setAuthUser(data.user);
+          connectSocket(data.user);
+        } else {
+          // Token valid but user null? Handled by backend usually
+        }
+      } else {
+        // If check failed logic
+        setAuthUser(null);
+        sessionStorage.removeItem("token");
+        setToken(null);
       }
     } catch (error) {
       console.log(error);
-      // Don't toast on checkAuth failure usually, just silent fail or redirect
+      setAuthUser(null);
     }
   };
 
@@ -38,7 +47,7 @@ export const AuthProvider = ({ children }) => {
         connectSocket(data.userData);
         axiosInstance.defaults.headers.common["token"] = data.token;
         setToken(data.token);
-        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token);
         toast.success(data.message);
       } else {
         toast.error(data.message);
@@ -50,7 +59,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setToken(null);
     setAuthUser(null);
     setOnlineUsers([]);
@@ -80,6 +89,7 @@ export const AuthProvider = ({ children }) => {
     const newSocket = io(backendUrl, {
       query: {
         userId: userData._id,
+        isGhostMode: userData.privacy?.ghostMode || false,
       },
     });
     newSocket.connect();

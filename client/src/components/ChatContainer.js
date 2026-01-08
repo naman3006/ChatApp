@@ -39,46 +39,6 @@ export const ChatContainer = () => {
   const scrollEnd = useRef();
 
   const [input, setInput] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const messageContainerRef = useRef(null);
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  useEffect(() => {
-    if ((selectedUser || selectedGroup) && page > 1) {
-      setLoadingMore(true);
-      const fetchMore = async () => {
-        const more = await getMessages(selectedUser ? selectedUser._id : selectedGroup._id, !!selectedGroup, page);
-        setHasMore(more);
-        setLoadingMore(false);
-      };
-      fetchMore();
-    }
-  }, [page]);
-
-  // Reset pagination on chat change
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-  }, [selectedUser, selectedGroup]);
-
-  const handleScroll = () => {
-    if (messageContainerRef.current.scrollTop === 0 && hasMore && !loadingMore) {
-      setPage(prev => prev + 1);
-    }
-  };
-
-  // Preserve scroll position
-  useEffect(() => {
-    if (page > 1 && messageContainerRef.current) {
-      // Logic to adjust scroll would go here, but React state updates might be async 
-      // and calculating exact height difference requires reference before update.
-      // Simplified: User scrolls up, we load more. The content prepends. 
-      // Browser usually attempts to keep scroll position relative to top, so it jumps to top.
-      // We can fix this by capturing scrollHeight before repaint.
-    }
-  }, [messages]);
-
   const [imagePreview, setImagePreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState(null);

@@ -53,18 +53,12 @@ export const ChatProvider = ({ children }) => {
   };
 
   //fun to get messages for selected user or group
-  //fun to get messages for selected user or group
-  const getMessages = async (id, isGroup = false, page = 1) => {
+  const getMessages = async (id, isGroup = false) => {
     try {
-      const url = isGroup ? `/messages/${id}?isGroup=true&page=${page}` : `/messages/${id}?page=${page}`;
+      const url = isGroup ? `/messages/${id}?isGroup=true` : `/messages/${id}`;
       const { data } = await axios.get(url);
       if (data.success) {
-        if (page === 1) {
-          setMessages(data.messages);
-        } else {
-          setMessages((prev) => [...data.messages, ...prev]);
-        }
-        return data.hasMore;
+        setMessages(data.messages);
       }
     } catch (error) {
       toast.error(error.message);

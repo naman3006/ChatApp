@@ -1,7 +1,5 @@
 import express from "express";
 import "dotenv/config";
-import cluster from "cluster";
-import os from "os";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -14,7 +12,6 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import { app, server } from "./lib/socket.js";
 
 const PORT = process.env.PORT || 5001; // Ensure 5001 is default if env missing
-const totalCPUs = os.cpus().length;
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -47,20 +44,6 @@ app.use(errorHandler);
 
 await connectDB();
 
-if (cluster.isPrimary) {
-    console.log(`Primary ${process.pid} is running`);
-    console.log(`Forking for ${totalCPUs} CPUs`);
-
-    for (let i = 0; i < totalCPUs; i++) {
-        cluster.fork();
-    }
-
-    cluster.on("exit", (worker, code, signal) => {
-        console.log(`worker ${worker.process.pid} died`);
-        cluster.fork();
-    });
-} else {
-    server.listen(PORT, () => {
-        console.log(`Worker ${process.pid} started. Server running on port : ${PORT}`);
-    });
-}
+server.listen(PORT, () => {
+    console.log(`Server is running on port : ${PORT}`);
+});

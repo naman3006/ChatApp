@@ -2,7 +2,6 @@ import Message from "../models/Message.js";
 import User from "../models/User.js";
 import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../lib/socket.js";
-import redisClient from "../lib/redis.js";
 
 //Get all users except the logged in user
 export const getUserForSidebar = async (req, res) => {
@@ -63,93 +62,86 @@ export const getUserForSidebar = async (req, res) => {
 //Get all messages for selected user
 export const getMessages = async (req, res) => {
   try {
-    const { id: chatId } = req.params;
+    const { id: chatId } = req.params; // This could be userId OR groupId
     const myId = req.user._id;
-    const isGroup = req.query.isGroup === "true";
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
 
-    const cacheKey = `messages:${chatId}:${isGroup ? 'group' : 'dm'}:${page}`;
+    // Check if chatId is a Group or User (simple heuristic or passed query param)
+    // For now, let's assume we might need a separate route or check DB
+    // To keep it simple and compatible:
+    // If we call /messages/:id, check if 'id' is a group first? Or use query param ?type=group
+
+    // Better strategy for this existing API:
+    // We modify the query to check if it matches a group logic if simple user find fails?
+    // Actually, explicit is better. Let's look for a query param or handle logic.
+    const isGroup = req.query.isGroup === "true";
 
     let messages;
-    let cachedMessages = await redisClient.get(cacheKey);
-
-    if (cachedMessages) {
-      messages = JSON.parse(cachedMessages);
+    if (isGroup) {
+      messages = await Message.find({ groupId: chatId })
+        .populate("senderId", "fullName profilePic"); // We need sender info for groups
     } else {
-      let query;
-      if (isGroup) {
-        query = Message.find({ groupId: chatId }).populate("senderId", "fullName profilePic");
-      } else {
-        query = Message.find({
-          $or: [
-            { senderId: myId, receiverId: chatId },
-            { senderId: chatId, receiverId: myId },
-          ],
-        });
-      }
-
-      // Sort by newest first for pagination, then we'll reverse for display if needed
-      // But typically chat history API returns newest-first or oldest-first? 
-      // Existing frontend likely appends. If we paginate backwards (scroll up), we want newest first from DB point of view if we skip?
-      // Actually standard is: .sort({ createdAt: -1 }) gives newest. 
-      // page 1 = newest 20. page 2 = next newest 20.
-      messages = await query.sort({ createdAt: -1 }).skip(skip).limit(limit);
-
-      // Cache for 60 seconds
-      await redisClient.setEx(cacheKey, 60, JSON.stringify(messages));
+      messages = await Message.find({
+        $or: [
+          { senderId: myId, receiverId: chatId },
+          { senderId: chatId, receiverId: myId },
+        ],
+      });
     }
 
-    // Check if messages is result of query or cache. If query, we need to populate for DM too?
-    // Populate is chainable on query. On cache hit, it's already objects.
-    // Wait, DM path didn't populate sender in original code? 
-    // Original code: await Message.find(...); // No populate for DM
-    // Group code: .populate("senderId", ...)
-    // So distinct behaviour is preserved.
-
     const user = await User.findById(myId);
-    const undoWindow = user?.privacy?.undoWindow ?? 5;
+    const undoWindow = user?.privacy?.undoWindow ?? 5; // Default 5 mins
 
     const visibleMessages = messages.filter(msg => {
-      // Logic same as before
+      // If not deleted, show it
       if (!msg.deletedAt) return true;
 
-      const msgSenderId = msg.senderId._id ? msg.senderId._id.toString() : msg.senderId.toString();
-      const msgReceiverId = msg.receiverId ? msg.receiverId.toString() : null;
+      // Group logic update for deletion:
+      // If deleted in group, who sees it? 
+      // Usually "Deleted Message" for everyone. 
+      // For now, let's apply same logic: Sender sees "Undo", others see nothing (or we implement "This message was deleted" text later)
+      // Current logic: Receiver(s) don't see it.
 
       if (isGroup) {
-        if (msgSenderId !== myId.toString()) return false;
+        if (msg.senderId._id.toString() !== myId.toString()) return false;
       } else {
-        if (msgReceiverId && msgReceiverId === myId.toString()) return false;
+        if (msg.receiverId && msg.receiverId.toString() === myId.toString()) return false;
       }
 
-      if ((isGroup ? msgSenderId : msgSenderId) === myId.toString()) {
+      // Sender: See it ONLY if within undo window
+      if ((isGroup ? msg.senderId._id.toString() : msg.senderId.toString()) === myId.toString()) {
         const diffMinutes = (Date.now() - new Date(msg.deletedAt).getTime()) / 1000 / 60;
         return diffMinutes <= undoWindow;
       }
+
       return false;
     });
 
-    if (!isGroup && page === 1) {
+    if (!isGroup) {
       await Message.updateMany(
         { senderId: chatId, receiverId: myId, seen: false },
         { seen: true }
       );
     }
 
-    // Sort back to chronological order (oldest first) if frontend expects that
-    // Original code returned oldest first (default Mongo find).
-    // Our DB query .sort({createdAt: -1}) returns newest first.
-    // So we should reverse `visibleMessages`.
-    visibleMessages.reverse();
-
-    // Lazy Expiration Check (Only on fresh fetch usually, but ok here)
+    // Lazy Expiration Check
     const now = new Date();
-    // Use for loop to avoid async filter issues if any, but regular filter is fine
-    // Note: pinned status updates won't persist to cache until expiry
+    const expiredMessages = visibleMessages.filter(m => m.pinned && m.pinnedAt && (now - new Date(m.pinnedAt) > 24 * 60 * 60 * 1000));
 
-    res.json({ success: true, messages: visibleMessages, hasMore: messages.length === limit });
+    if (expiredMessages.length > 0) {
+      await Promise.all(expiredMessages.map(async (msg) => {
+        await Message.findByIdAndUpdate(msg._id, { pinned: false, pinnedBy: null, pinnedAt: null });
+      }));
+      // Update local list for response
+      visibleMessages.forEach(m => {
+        if (expiredMessages.some(em => em._id.equals(m._id))) {
+          m.pinned = false;
+          m.pinnedBy = null;
+          m.pinnedAt = null;
+        }
+      });
+    }
+
+    res.json({ success: true, messages: visibleMessages });
   } catch (err) {
     console.log(err.message);
     res.json({ success: false, message: err.message });

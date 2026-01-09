@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useContext, useEffect, useRef, useState } from "react";
 import assets from "../chat-assets/assets";
-import { formatMessageTime, formatLastSeen } from "../lib/utils";
+import { formatMessageTime, formatLastSeen, formatDateSeparator } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
 import { AuthContext } from "../context/authContext";
 import VoiceMessage from "./VoiceMessage";
@@ -510,8 +510,24 @@ export const ChatContainer = () => {
             const senderName = msg.senderId?.fullName || "User";
             const isFirstUnseen = idx === firstUnseenIndex;
 
+            // Date Separator Logic
+            const showDateSeparator = (() => {
+              if (idx === 0) return true;
+              const prevMsg = messages[idx - 1];
+              const prevDate = new Date(prevMsg.createdAt).toDateString();
+              const currDate = new Date(msg.createdAt).toDateString();
+              return prevDate !== currDate;
+            })();
+
             return (
               <React.Fragment key={idx}>
+                {showDateSeparator && (
+                  <div className="w-full flex items-center justify-center my-4">
+                    <div className="bg-gray-800/80 text-gray-400 text-[11px] font-medium px-3 py-1 rounded-full border border-gray-700/50 backdrop-blur-sm shadow-sm">
+                      {formatDateSeparator(msg.createdAt)}
+                    </div>
+                  </div>
+                )}
                 {isFirstUnseen && (
                   <div className="w-full flex items-center justify-center my-6">
                     <div className="bg-violet-900/30 text-xs px-4 py-1.5 rounded-full text-violet-300 border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)] backdrop-blur-sm">

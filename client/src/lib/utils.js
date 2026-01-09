@@ -14,3 +14,18 @@ export function formatLastSeen(dateString) {
     // Format: "Last seen at HH:mm on DD/MM/YYYY" as per common conventions, or "HH:mm DD/MM/YYYY"
     return `Last seen at ${time} on ${dayDate}`;
 }
+
+export const formatDateSeparator = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    if (date.toDateString() === now.toDateString()) {
+        return "Today";
+    }
+    if (date.toDateString() === yesterday.toDateString()) {
+        return "Yesterday";
+    }
+    return date.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+};

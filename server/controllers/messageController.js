@@ -8,29 +8,63 @@ export const getUserForSidebar = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
 
-    // Use aggregation to fetch users and count unseen messages in one go
+    // 1. Fetch all users except logged in user
     const filteredUsers = await User.aggregate([
-      { $match: { _id: { $ne: loggedInUserId } } }, // Exclude current user
+      { $match: { _id: { $ne: loggedInUserId } } },
       {
         $project: {
           password: 0,
-          // Conditionally project timestamps based on privacy.lastSeen
-          // Logic: If privacy.lastSeen is false, set updatedAt to null or exclude it.
-          // Since aggregation is complex for conditional field exclusion based on its own field value without $cond, we will process this in JS or use $cond
         }
       },
     ]);
 
-    // Apply privacy filter in application layer for simplicity 
-    // (or use complex $project with $cond if preferred, but JS is fine for 50-100 users)
-    const usersWithPrivacy = filteredUsers.map(user => {
-      if (user.privacy && user.privacy.lastSeen === false) {
-        user.lastSeen = null; // Hide timestamp
+    // 2. Get last message timestamp for each conversation to sort sidebar
+    const lastMessages = await Message.aggregate([
+      {
+        $match: {
+          $or: [{ senderId: loggedInUserId }, { receiverId: loggedInUserId }],
+          groupId: { $exists: false } // Ignore group messages for DM sorting
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $group: {
+          _id: {
+            $cond: {
+              if: { $eq: ["$senderId", loggedInUserId] },
+              then: "$receiverId",
+              else: "$senderId",
+            },
+          },
+          lastMessageTime: { $first: "$createdAt" },
+        },
+      },
+    ]);
+
+    // Create Map for O(1) lookup
+    const lastMessageMap = new Map();
+    lastMessages.forEach(msg => {
+      if (msg._id) { // Safety check
+        lastMessageMap.set(msg._id.toString(), new Date(msg.lastMessageTime).getTime());
       }
+    });
+
+    // 3. Process users: Apply privacy & sorting
+    const usersWithMetadata = filteredUsers.map(user => {
+      if (user.privacy && user.privacy.lastSeen === false) {
+        user.lastSeen = null;
+      }
+      // Attach timestamp (default to 0 to put at bottom if no chat)
+      user.lastMessageTime = lastMessageMap.get(user._id.toString()) || 0;
       return user;
     });
 
-    // Fetch unseen message counts for these users efficiently
+    // Sort: Newest message first
+    usersWithMetadata.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+
+    // 4. Fetch unseen message counts
     const unseenCounts = await Message.aggregate([
       {
         $match: {
@@ -46,13 +80,12 @@ export const getUserForSidebar = async (req, res) => {
       },
     ]);
 
-    // Convert array to object for O(1) lookup
     const unseenMessages = unseenCounts.reduce((acc, curr) => {
       acc[curr._id.toString()] = curr.count;
       return acc;
     }, {});
 
-    res.json({ success: true, users: usersWithPrivacy, unseenMessages });
+    res.json({ success: true, users: usersWithMetadata, unseenMessages });
   } catch (err) {
     console.log(err.message);
     res.status(500).json({ success: false, message: err.message });

@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import assets from "../chat-assets/assets";
 import { formatMessageTime, formatLastSeen, formatDateSeparator } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
@@ -11,6 +12,7 @@ import { CallContext } from "../context/CallContext";
 import { Phone, Video } from "lucide-react";
 
 export const ChatContainer = () => {
+  const navigate = useNavigate();
   const {
     messages,
     selectedUser,
@@ -402,11 +404,14 @@ export const ChatContainer = () => {
           <img
             src={selectedUser.profilePic || assets.avatar_icon}
             alt=""
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => navigate(`/user/${selectedUser._id}`)}
           />
         )}
         <div className="flex-1 flex flex-col justify-center">
-          <p className="text-lg text-white flex items-center gap-2 font-medium">
+          <p className={`text-lg text-white flex items-center gap-2 font-medium ${!selectedGroup && "cursor-pointer hover:underline"}`}
+            onClick={() => !selectedGroup && navigate(`/user/${selectedUser._id}`)}
+          >
             {selectedGroup ? selectedGroup.name : selectedUser.fullName}
             {!selectedGroup && onlineUsers.includes(selectedUser._id) &&
               <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>}
@@ -1088,13 +1093,13 @@ export const ChatContainer = () => {
               </button>
 
               {/* Sticker Button */}
-              <button
+              {/* <button
                 onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); }}
                 className="text-gray-400 hover:text-pink-400 transition-colors p-2 font-bold text-xs border border-gray-600 rounded-md h-8 w-8 flex items-center justify-center"
                 title="GIF/Stickers"
               >
                 GIF
-              </button>
+              </button> */}
 
               {showEmojiPicker && (
                 <div className="absolute bottom-16 left-4 z-50 shadow-2xl rounded-xl overflow-hidden border border-gray-700">
@@ -1176,7 +1181,7 @@ export const ChatContainer = () => {
         <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-4 animate-bounce">
           <img src={assets.logo_icon} className="w-10 h-10 opacity-70" alt="" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Welcome to VoxMarket Chat</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">Welcome to QuickChat</h2>
         <p className="text-gray-400 mb-0">Select a chat to start messaging</p>
       </div>
     </div>

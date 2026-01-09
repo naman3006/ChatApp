@@ -40,6 +40,7 @@ export const ChatContainer = () => {
   const isBlocked = authUser?.blockedUsers?.includes(selectedUser?._id);
 
   const scrollEnd = useRef();
+  const firstUnseenMsgRef = useRef();
 
   const [input, setInput] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
@@ -332,10 +333,17 @@ export const ChatContainer = () => {
   }, [selectedUser, selectedGroup]);
 
   useEffect(() => {
-    if (scrollEnd.current && messages) {
-      scrollEnd.current.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0) {
+      // Small delay to ensure rendering is complete
+      setTimeout(() => {
+        if (firstUnseenMsgRef.current) {
+          firstUnseenMsgRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (scrollEnd.current) {
+          scrollEnd.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
     }
-  }, [messages]);
+  }, [messages, selectedUser, selectedGroup]);
 
   return (selectedUser || selectedGroup) ? (
     <div className="h-full w-full overflow-hidden relative flex flex-col backdrop-blur-lg" onClick={() => setActiveMenuId(null)}>
@@ -458,212 +466,230 @@ export const ChatContainer = () => {
           </div>
         </div>
       )}
-      <div className="flex flex-col h-[calc(100%-120px)] overflow-y-scroll p-3 pb-6">
-        {messages.map((msg, idx) => {
-          if (msg.isSystemMessage) {
+      {/* Messages Area - Flex Grow to fill space */}
+      <div className="flex-1 min-h-0 overflow-y-scroll p-4 pb-6 space-y-6 flex flex-col">
+        {(() => {
+          // Calculate first unseen index once
+          const firstUnseenIndex = messages.findIndex(m => !m.seen && (m.senderId?._id || m.senderId) !== authUser._id);
+
+          return messages.map((msg, idx) => {
+            if (msg.isSystemMessage) {
+              return (
+                <div key={idx} className="flex justify-center my-4">
+                  <div className="bg-gray-800/50 text-gray-400 text-xs px-3 py-1 rounded-full border border-gray-700/50">
+                    {msg.text}
+                  </div>
+                </div>
+              )
+            }
+
+            if (msg.deletedAt) {
+              const undoWindow = authUser?.privacy?.undoWindow ?? 5;
+              const isExpired = (Date.now() - new Date(msg.deletedAt).getTime()) > (undoWindow * 60 * 1000);
+
+              if (isExpired || undoWindow === 0) return null;
+
+              return (
+                <div key={idx} className="flex justify-end my-2">
+                  <div className="bg-gray-800/60 border border-gray-700/50 rounded-lg p-3 flex items-center gap-3">
+                    <span className="text-gray-400 text-sm italic">You deleted this message</span>
+                    <button
+                      onClick={() => undoDeleteMessage(msg._id)}
+                      className="text-violet-400 text-sm hover:underline font-medium"
+                    >
+                      Undo
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+
+            // Robust sender check
+            const isMyMessage = (msg.senderId?._id || msg.senderId) === authUser._id;
+            const senderProfilePic = (msg.senderId?.profilePic) || selectedUser?.profilePic || assets.avatar_icon;
+            const senderName = msg.senderId?.fullName || "User";
+            const isFirstUnseen = idx === firstUnseenIndex;
+
             return (
-              <div key={idx} className="flex justify-center my-4">
-                <div className="bg-gray-800/50 text-gray-400 text-xs px-3 py-1 rounded-full border border-gray-700/50">
-                  {msg.text}
-                </div>
-              </div>
-            )
-          }
-
-          if (msg.deletedAt) {
-            const undoWindow = authUser?.privacy?.undoWindow ?? 5;
-            const isExpired = (Date.now() - new Date(msg.deletedAt).getTime()) > (undoWindow * 60 * 1000);
-
-            if (isExpired || undoWindow === 0) return null;
-
-            return (
-              <div key={idx} className="flex justify-end my-2">
-                <div className="bg-gray-800/60 border border-gray-700/50 rounded-lg p-3 flex items-center gap-3">
-                  <span className="text-gray-400 text-sm italic">You deleted this message</span>
-                  <button
-                    onClick={() => undoDeleteMessage(msg._id)}
-                    className="text-violet-400 text-sm hover:underline font-medium"
-                  >
-                    Undo
-                  </button>
-                </div>
-              </div>
-            )
-          }
-
-          // Robust sender check
-          const isMyMessage = (msg.senderId?._id || msg.senderId) === authUser._id;
-          const senderProfilePic = (msg.senderId?.profilePic) || selectedUser?.profilePic || assets.avatar_icon;
-          const senderName = msg.senderId?.fullName || "User";
-
-          return (
-            <div
-              key={idx}
-              id={`msg-${msg._id}`}
-              className={`flex items-end gap-2 mb-4 group ${isMyMessage ? "justify-end" : "justify-start"}`}
-            >
-              {/* Avatar (Left side for others) */}
-              {!isMyMessage && (
-                <div className="chat-avatar flex flex-col items-center">
-                  <img
-                    src={senderProfilePic}
-                    className="w-8 h-8 rounded-full border border-gray-600 object-cover"
-                    alt="avatar"
-                    title={senderName}
-                  />
-                </div>
-              )}
-
-              <div className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"} max-w-[70%]`}>
-
-                {/* Sender Name for Groups (Others only) */}
-                {selectedGroup && !isMyMessage && (
-                  <span className="text-xs text-gray-400 ml-1 mb-1">{senderName}</span>
+              <React.Fragment key={idx}>
+                {isFirstUnseen && (
+                  <div className="w-full flex items-center justify-center my-6">
+                    <div className="bg-violet-900/30 text-xs px-4 py-1.5 rounded-full text-violet-300 border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.1)] backdrop-blur-sm">
+                      Unread Messages
+                    </div>
+                  </div>
                 )}
+                <div
+                  id={`msg-${msg._id}`}
+                  ref={isFirstUnseen ? firstUnseenMsgRef : null}
+                  className={`flex items-end gap-3 group ${isMyMessage ? "justify-end" : "justify-start"}`}
+                >
+                  {/* Avatar (Left side for others) */}
+                  {!isMyMessage && (
+                    <div className="chat-avatar flex flex-col items-center mb-1">
+                      <img
+                        src={senderProfilePic}
+                        className="w-8 h-8 rounded-full border border-gray-700 object-cover shadow-sm"
+                        alt="avatar"
+                        title={senderName}
+                      />
+                    </div>
+                  )}
 
-                <div className={`relative group/msg ${isMyMessage ? "flex-row-reverse" : "flex-row"} flex items-center gap-2`}>
-                  {/* Message Bubble / Content */}
-                  {msg.image && (
-                    <div className="flex flex-col">
-                      <div className="relative group/image">
-                        <img
-                          className="max-w-[230px] border border-gray-700 rounded-lg overflow-hidden"
-                          src={msg.image}
-                          alt=""
-                        />
-                        <button
-                          onClick={() => handleDownloadImage(msg.image)}
-                          className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-0 group-hover/image:opacity-100 transition-opacity"
-                          title="Download"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-                        </button>
-                      </div>
-                      {msg.text && (
-                        <p
-                          className={`p-2 max-w-[230px] md:text-sm font-light rounded-lg mt-1 break-all bg-violet-500/30 text-white ${!isMyMessage
-                            ? "rounded-tr-none px-3 bg-gray-800"
-                            : "rounded-tl-none bg-violet-600"
-                            } `}
-                        >
-                          {msg.text}
-                        </p>
+                  <div className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"} max-w-[85%] sm:max-w-[75%] md:max-w-[70%]`}>
+
+                    {/* Sender Name for Groups (Others only) */}
+                    {selectedGroup && !isMyMessage && (
+                      <span className="text-[10px] text-gray-400 ml-1 mb-1 font-medium tracking-wide">{senderName}</span>
+                    )}
+
+                    <div className={`relative group/msg ${isMyMessage ? "flex-row-reverse" : "flex-row"} flex items-center gap-2`}>
+                      {/* Message Bubble / Content */}
+                      {msg.image && (
+                        <div className="flex flex-col">
+                          <div className="relative group/image">
+                            <img
+                              className="max-w-full sm:max-w-[320px] md:max-w-[360px] border-2 border-transparent rounded-2xl overflow-hidden shadow-md object-cover"
+                              src={msg.image}
+                              alt=""
+                            />
+                            <button
+                              onClick={() => handleDownloadImage(msg.image)}
+                              className="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover/image:opacity-100 transition-all transform hover:scale-110"
+                              title="Download"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                            </button>
+                          </div>
+                          {msg.text && (
+                            <p
+                              className={`p-3 w-full sm:min-w-[120px] text-sm md:text-[15px] rounded-2xl mt-2 break-words shadow-sm leading-relaxed ${!isMyMessage
+                                ? "rounded-tl-none bg-gray-800 text-gray-100 border border-gray-700"
+                                : "rounded-tr-none bg-gradient-to-br from-violet-600 to-indigo-600 text-white border border-white/10"
+                                } `}
+                            >
+                              {msg.text}
+                            </p>
+                          )}
+
+                        </div>
                       )}
 
-                    </div>
-                  )}
-
-                  {msg.audio && (
-                    <div className={`rounded-lg flex items-center gap-2 text-white ${!isMyMessage ? "bg-gray-800 rounded-tl-none" : "bg-violet-600 rounded-tr-none px-2"}`}>
-                      <VoiceMessage src={msg.audio} />
-                    </div>
-                  )}
-
-                  {!msg.image && !msg.audio && (
-                    editingMessageId === msg._id ? (
-                      <div className="flex flex-col gap-1">
-                        <input
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="bg-violet-900/50 text-white p-2 rounded text-sm outline-none border border-violet-500"
-                          autoFocus
-                        />
-                        <div className="flex justify-end gap-1">
-                          <button onClick={cancelEditing} className="text-xs text-gray-400 hover:text-white">Cancel</button>
-                          <button onClick={handleUpdateMessage} className="text-xs text-green-400 hover:text-green-300">Save</button>
+                      {msg.audio && (
+                        <div className={`rounded-2xl p-2 flex items-center gap-2 text-white shadow-md ${!isMyMessage ? "bg-gray-800 rounded-tl-none border border-gray-700" : "bg-gradient-to-r from-violet-600 to-indigo-600 rounded-tr-none border border-white/10"}`}>
+                          <VoiceMessage src={msg.audio} />
                         </div>
-                      </div>
-                    ) : (
-                      <div className={`relative p-3 rounded-lg text-white md:text-sm font-light break-all ${!isMyMessage ? "bg-stone-800/80 rounded-tl-none" : "bg-violet-600 shadow-md rounded-tr-none"}`}>
-                        <p>{msg.text}</p>
-                        {/* Time & Read Status */}
-                        <div className="flex items-center gap-1 justify-end mt-1 opacity-70">
-                          <span className="text-[10px]">{formatMessageTime(msg.createdAt)}</span>
-                          {isMyMessage && (
-                            <span>
-                              {msg.seen ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
-                              ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                      )}
+
+                      {!msg.image && !msg.audio && (
+                        editingMessageId === msg._id ? (
+                          <div className="flex flex-col gap-2 min-w-[200px]">
+                            <input
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              className="bg-gray-800 text-white p-3 rounded-lg text-sm outline-none border border-violet-500 ring-2 ring-violet-500/20"
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button onClick={cancelEditing} className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-700">Cancel</button>
+                              <button onClick={handleUpdateMessage} className="text-xs text-white bg-green-600 hover:bg-green-500 px-3 py-1 rounded transition-colors">Save</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={`relative px-4 py-2.5 rounded-2xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all ${!isMyMessage
+                            ? "bg-white/5 backdrop-blur-sm border border-white/10 text-gray-100 rounded-tl-none hover:bg-white/10"
+                            : "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-violet-500/20 rounded-tr-none border border-white/10"}`}>
+                            <p>{msg.text}</p>
+                            {/* Time & Read Status */}
+                            <div className={`flex items-center gap-1.5 justify-end mt-1 ${isMyMessage ? "text-violet-200" : "text-gray-400"}`}>
+                              <span className="text-[10px] font-medium">{formatMessageTime(msg.createdAt)}</span>
+                              {isMyMessage && (
+                                <span>
+                                  {msg.seen ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
+                                  ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70"><path d="M20 6 9 17l-5-5" /></svg>
+                                  )}
+                                </span>
                               )}
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                      {/* Reactions Display */}
+                      {msg.reactions && msg.reactions.length > 0 && (
+                        <div className={`absolute -bottom-3 ${isMyMessage ? "right-0" : "left-0"} flex items-center gap-1 bg-gray-800 rounded-full px-2 py-0.5 shadow-lg border border-gray-700 z-[5]`}>
+                          {Object.entries(
+                            msg.reactions.reduce((acc, curr) => {
+                              acc[curr.emoji] = (acc[curr.emoji] || 0) + 1;
+                              return acc;
+                            }, {})
+                          ).map(([emoji, count]) => (
+                            <span key={emoji} className="text-xs flex items-center gap-0.5 text-gray-300 hover:scale-110 transition-transform cursor-pointer">
+                              <span>{emoji}</span>
+                              {count > 1 && <span className="font-bold text-[10px]">{count}</span>}
                             </span>
-                          )}
+                          ))}
                         </div>
-                      </div>
-                    )
-                  )}
+                      )}
 
-                  {/* Reactions Display */}
-                  {msg.reactions && msg.reactions.length > 0 && (
-                    <div className={`absolute -bottom-4 ${isMyMessage ? "right-0" : "left-0"} flex items-center gap-1 bg-gray-800/80 rounded-full px-2 py-0.5 shadow-md border border-gray-700/50 z-[5]`}>
-                      {Object.entries(
-                        msg.reactions.reduce((acc, curr) => {
-                          acc[curr.emoji] = (acc[curr.emoji] || 0) + 1;
-                          return acc;
-                        }, {})
-                      ).map(([emoji, count]) => (
-                        <span key={emoji} className="text-[10px] flex items-center gap-0.5 text-gray-300">
-                          <span>{emoji}</span>
-                          {count > 1 && <span className="">{count}</span>}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Actions (Edit/Delete/React) */}
-                  <div className="opacity-0 group-hover/msg:opacity-100 transition-opacity px-2 flex items-center gap-1">
-                    {/* Reaction Button */}
-                    <div className="relative group/reaction">
-                      <button className="text-gray-400 hover:text-yellow-400 p-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
-                      </button>
-                      {/* Hover Reaction Bar */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-gray-800 rounded-full shadow-lg border border-gray-700 p-1 flex items-center gap-1 hidden group-hover/reaction:flex">
-                        {["👍", "❤️", "😂", "😮", "😢", "🙏"].map(emoji => (
-                          <button
-                            key={emoji}
-                            onClick={(e) => { e.stopPropagation(); handleReaction(msg._id, emoji); }}
-                            className="hover:scale-125 transition-transform text-lg p-1"
-                          >
-                            {emoji}
+                      {/* Actions (Edit/Delete/React) */}
+                      <div className="opacity-0 group-hover/msg:opacity-100 transition-all duration-200 px-2 flex items-center gap-2">
+                        {/* Reaction Button */}
+                        <div className="relative group/reaction">
+                          <button className="text-gray-500 hover:text-yellow-400 transition-colors p-1.5 rounded-full hover:bg-gray-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
                           </button>
-                        ))}
-                      </div>
-                    </div>
+                          {/* Hover Reaction Bar */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 rounded-full shadow-xl border border-gray-700 p-2 flex items-center gap-2 hidden group-hover/reaction:flex animate-in fade-in slide-in-from-bottom-2 z-20">
+                            {["👍", "❤️", "😂", "😮", "😢", "🙏"].map(emoji => (
+                              <button
+                                key={emoji}
+                                onClick={(e) => { e.stopPropagation(); handleReaction(msg._id, emoji); }}
+                                className="hover:scale-125 transition-transform text-xl p-0.5"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                    {/* Menu Button (Only for own messages) */}
-                    {isMyMessage && (
-                      <div className="relative">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleMenu(msg._id); }}
-                          className="text-gray-400 hover:text-white"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
-                        </button>
-                        {activeMenuId === msg._id && (
-                          <div className="absolute bottom-full right-0 mb-2 w-28 bg-gray-800 rounded shadow-lg z-10 overflow-hidden border border-gray-700">
+                        {/* Menu Button (Only for own messages) */}
+                        {isMyMessage && (
+                          <div className="relative">
                             <button
-                              onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
-                              className={`block w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
+                              onClick={(e) => { e.stopPropagation(); toggleMenu(msg._id); }}
+                              className="text-gray-500 hover:text-white transition-colors p-1.5 rounded-full hover:bg-gray-800"
                             >
-                              {msg.pinned ? "Unpin" : "Pin"}
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                             </button>
-                            {!msg.image && !msg.audio && (
-                              <button onClick={() => startEditing(msg)} className="block w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700">Edit</button>
+                            {activeMenuId === msg._id && (
+                              <div className="absolute bottom-full right-0 mb-2 w-32 bg-gray-900 rounded-xl shadow-xl z-20 overflow-hidden border border-gray-700 animate-in fade-in zoom-in-95 origin-bottom-right">
+                                <button
+                                  onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
+                                  className={`block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 flex items-center gap-2 ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
+                                >
+                                  {msg.pinned ? <span>Unpin</span> : <span>Pin</span>}
+                                </button>
+                                {!msg.image && !msg.audio && (
+                                  <button onClick={() => startEditing(msg)} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 border-t border-gray-800">Edit</button>
+                                )}
+                                <button onClick={() => handleDeleteMessage(msg._id)} className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-gray-800 border-t border-gray-800">Delete</button>
+                              </div>
                             )}
-                            <button onClick={() => handleDeleteMessage(msg._id)} className="block w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-gray-700">Delete</button>
                           </div>
                         )}
                       </div>
-                    )}
+                    </div>
+
                   </div>
                 </div>
-
-              </div>
-            </div>
-          );
-        })}
-        <div ref={scrollEnd}></div>
+              </React.Fragment>
+            );
+          })
+        })()}
+        <div ref={scrollEnd} className="h-1"></div>
       </div>
 
       {/* Image Preview Modal */}
@@ -884,51 +910,53 @@ export const ChatContainer = () => {
 
 
       {/* Pinned Messages Sidebar */}
-      {showPinnedMessages && (
-        <div className="absolute inset-y-0 right-0 w-80 bg-gray-900 border-l border-gray-800 z-50 transform transition-transform shadow-2xl flex flex-col backdrop-blur-3xl bg-opacity-95">
-          <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900/50">
-            <h3 className="font-semibold text-white flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
-              Pinned Messages
-            </h3>
-            <button onClick={() => setShowPinnedMessages(false)} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-            {messages.filter(m => m.pinned).length === 0 ? (
-              <div className="text-center text-gray-500 py-10 flex flex-col items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
-                <p className="text-sm">No pinned messages</p>
-              </div>
-            ) : (
-              messages.filter(m => m.pinned).map(msg => (
-                <div key={msg._id} className="bg-gray-800/50 p-3 rounded-xl border border-gray-700/50 hover:border-violet-500/30 transition-colors group relative">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <img src={msg.senderId.profilePic || assets.avatar_icon} className="w-5 h-5 rounded-full object-cover" alt="" />
-                    <span className="text-xs font-semibold text-gray-300">{msg.senderId.fullName}</span>
-                    <span className="text-[10px] text-gray-500 ml-auto">{formatMessageTime(msg.createdAt)}</span>
-                  </div>
-                  {msg.text && <p className="text-sm text-gray-200 line-clamp-3">{msg.text}</p>}
-                  {msg.image && <div className="text-xs text-blue-400 mt-1 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg> Image Attachment</div>}
-                  {msg.audio && <div className="text-xs text-yellow-500 mt-1 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /><line x1="8" x2="16" y1="22" y2="22" /></svg> Voice Message</div>}
-
-                  <button
-                    onClick={() => unpinMessage(msg._id)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all p-1"
-                    title="Unpin"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
-                  </button>
+      {
+        showPinnedMessages && (
+          <div className="absolute inset-y-0 right-0 w-80 bg-gray-900 border-l border-gray-800 z-50 transform transition-transform shadow-2xl flex flex-col backdrop-blur-3xl bg-opacity-95">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900/50">
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+                Pinned Messages
+              </h3>
+              <button onClick={() => setShowPinnedMessages(false)} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+              {messages.filter(m => m.pinned).length === 0 ? (
+                <div className="text-center text-gray-500 py-10 flex flex-col items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+                  <p className="text-sm">No pinned messages</p>
                 </div>
-              ))
-            )}
+              ) : (
+                messages.filter(m => m.pinned).map(msg => (
+                  <div key={msg._id} className="bg-gray-800/50 p-3 rounded-xl border border-gray-700/50 hover:border-violet-500/30 transition-colors group relative">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <img src={msg.senderId.profilePic || assets.avatar_icon} className="w-5 h-5 rounded-full object-cover" alt="" />
+                      <span className="text-xs font-semibold text-gray-300">{msg.senderId.fullName}</span>
+                      <span className="text-[10px] text-gray-500 ml-auto">{formatMessageTime(msg.createdAt)}</span>
+                    </div>
+                    {msg.text && <p className="text-sm text-gray-200 line-clamp-3">{msg.text}</p>}
+                    {msg.image && <div className="text-xs text-blue-400 mt-1 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg> Image Attachment</div>}
+                    {msg.audio && <div className="text-xs text-yellow-500 mt-1 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /><line x1="8" x2="16" y1="22" y2="22" /></svg> Voice Message</div>}
+
+                    <button
+                      onClick={() => unpinMessage(msg._id)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all p-1"
+                      title="Unpin"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* bottom area  */}
-      <div className="absolute bottom-0 left-0 right-0 gap-3 p-3 backdrop-blur-md bg-black/20">
+      <div className="w-full gap-3 p-3 backdrop-blur-md bg-black/20 z-10">
 
         {/* Dynamic Input Area */}
         {isBlocked ? (
@@ -1067,7 +1095,7 @@ export const ChatContainer = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   ) : (
     <div className="hidden md:flex flex-col flex-1 items-center justify-center p-4 text-center">
       <div className="bg-gray-900/50 p-6 rounded-3xl flex flex-col items-center max-w-md text-center border border-gray-800 shadow-2xl backdrop-blur-sm">

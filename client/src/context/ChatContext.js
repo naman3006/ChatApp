@@ -250,7 +250,7 @@ export const ChatProvider = ({ children }) => {
 
   const deleteMessage = async (messageId) => {
     try {
-      const { data } = await axios.delete(`/messages/delete/${messageId}`);
+      const { data } = await axios.delete(`/messages/${messageId}`);
       if (data.success) {
         setMessages((prevMessages) => prevMessages.map(msg => {
           if (msg._id === messageId) return { ...msg, deletedAt: new Date().toISOString() };

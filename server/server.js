@@ -13,12 +13,23 @@ import { app, server } from "./lib/socket.js";
 
 const PORT = process.env.PORT || 5001; // Ensure 5001 is default if env missing
 
+console.log("-----------------------------------------");
+console.log("Server Starting...");
+console.log("PORT:", PORT);
+console.log("JWT_SECRET check:", process.env.JWT_SECRET ? "OK" : "MISSING");
+console.log("CLIENT_URL check:", process.env.CLIENT_URL || "Not Set");
+console.log("-----------------------------------------");
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(express.json({ limit: "50mb" }));
 app.use(
     cors({
-        origin: ["http://localhost:3000", "http://localhost:5173"],
+        origin: [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+        ],
         credentials: true,
     })
 );
@@ -31,6 +42,10 @@ const limiter = rateLimit({
     legacyHeaders: false,
 });
 app.use("/api", limiter);
+
+app.get("/", (req, res) => {
+    res.send("<h1>Server is running!</h1><p>Worker Process: " + process.pid + "</p>");
+});
 
 app.use("/api/status", (req, res) => {
     res.send("Server is live");

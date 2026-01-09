@@ -8,11 +8,8 @@ import { messageSchema } from "../lib/validators.js";
 const messageRouter = express.Router();
 
 messageRouter.get("/users", protectRoute, getUserForSidebar)
-
 messageRouter.get("/:id", protectRoute, getMessages)
-
 messageRouter.put("/mark/:id", protectRoute, markMessageAsSeen)
-
 messageRouter.post("/send/:id", protectRoute, validate(messageSchema), sendMessage)
 messageRouter.put("/:id", protectRoute, updateMessage);
 messageRouter.post("/:id/react", protectRoute, addReaction);

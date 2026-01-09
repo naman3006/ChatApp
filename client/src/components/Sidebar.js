@@ -19,14 +19,17 @@ export const Sidebar = () => {
     getGroups,
     setSelectedGroup,
     selectedGroup,
-    createGroup
+    createGroup,
+    typingData
   } = useContext(ChatContext);
+
+  const { logout, onlineUsers, authUser } = useContext(AuthContext);
 
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]);
 
-  const { logout, onlineUsers } = useContext(AuthContext);
+
   const [input, setInput] = useState("");
 
   const navigate = useNavigate();
@@ -66,7 +69,16 @@ export const Sidebar = () => {
     >
       <div className="pb-5">
         <div className="flex justify-between items-center">
-          <img src={assets.logo} alt="logo" className="max-w-40" />
+          <div className="flex items-center gap-2">
+            <img
+              onClick={() => navigate("/profile")}
+              src={authUser?.profilePic || assets.avatar_icon}
+              alt="Profile"
+              className="w-10 h-10 rounded-full object-cover cursor-pointer border-2 border-transparent hover:border-violet-500 transition-all"
+              title="Edit Profile"
+            />
+            <img src={assets.logo} alt="logo" className="hidden sm:block max-w-32" />
+          </div>
           <div className="flex items-center gap-4">
             <button onClick={() => setShowGroupModal(true)} title="Create Group" className="text-gray-400 hover:text-white transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>
@@ -81,13 +93,13 @@ export const Sidebar = () => {
                 className="max-h-5 cursor-pointer"
               />
               <div className="absolute top-full right-0 z-20 w-32 p-5 rounded-md bg-[#282142] border border-gray-600 text-gray-100 hidden group-hover:block">
-                <p
+                {/* <p
                   onClick={() => navigate("/profile")}
                   className="cursor-pointer text-sm"
                 >
                   Edit Profile
-                </p>
-                <hr className="my-2 border-t border-gray-500" />
+                </p> */}
+                {/* <hr className="my-2 border-t border-gray-500" /> */}
                 <p onClick={() => logout()} className="cursor-pointer text-sm">
                   Logout
                 </p>
@@ -116,10 +128,17 @@ export const Sidebar = () => {
             onClick={() => setSelectedGroup(group)}
             className={`flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedGroup?._id === group._id ? "bg-[#282142]/50" : ""}`}
           >
-            <div className="w-[35px] h-[35px] rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-[35px] h-[35px] min-w-[35px] rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
               {group.name[0].toUpperCase()}
             </div>
-            <p className="truncate">{group.name}</p>
+            <div className="flex flex-col truncate w-full">
+              <p className="truncate text-sm font-medium">{group.name}</p>
+              {typingData && typingData[group._id] && typingData[group._id].size > 0 ? (
+                <p className="text-[10px] text-green-400 animate-pulse font-medium truncate">
+                  {users.find(u => u._id === Array.from(typingData[group._id])[0])?.fullName.split(' ')[0] || "Someone"} is typing...
+                </p>
+              ) : null}
+            </div>
           </div>
         ))}
       </div>
@@ -137,7 +156,7 @@ export const Sidebar = () => {
               });
             }}
             key={idx}
-            className={`relative flex items-center gap-2 p-2 pl-4 ronded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id && "bg-[#282142]/50"
+            className={`relative flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id && "bg-[#282142]/50"
               }`}
           >
             <img
@@ -146,13 +165,17 @@ export const Sidebar = () => {
               className="w-[35px] aspect-[1/1] rounded-full"
             />
             <div className="flex flex-col leading-5">
-              <p>{user.fullName}</p>
-              {onlineUsers.includes(user._id) ? (
-                <span className="text-green-400 text-xs">Online</span>
+              <p className="text-sm font-medium">{user.fullName}</p>
+              {typingData && typingData[user._id] && typingData[user._id].size > 0 ? (
+                <span className="text-green-400 text-xs animate-pulse font-medium">Typing...</span>
               ) : (
-                <span className="text-neutral-400 text-xs">
-                  {user.updatedAt ? `Last seen: ${formatMessageTime(user.updatedAt)}` : "Offline"}
-                </span>
+                onlineUsers.includes(user._id) ? (
+                  <span className="text-green-400 text-xs">Online</span>
+                ) : (
+                  <span className="text-neutral-400 text-xs">
+                    {user.updatedAt ? `Last seen: ${formatMessageTime(user.updatedAt)}` : "Offline"}
+                  </span>
+                )
               )}
             </div>
             {unseenMessages && unseenMessages[user._id] > 0 && (
@@ -165,37 +188,39 @@ export const Sidebar = () => {
       </div>
 
       {/* Create Group Modal */}
-      {showGroupModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 p-6 rounded-xl w-full max-w-md">
-            <h2 className="text-xl text-white font-bold mb-4">Create New Group</h2>
+      {
+        showGroupModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 border border-gray-700 p-6 rounded-xl w-full max-w-md">
+              <h2 className="text-xl text-white font-bold mb-4">Create New Group</h2>
 
-            <input
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Group Name"
-              className="w-full bg-gray-800 text-white p-3 rounded-lg mb-4 border border-gray-700 outline-none focus:border-violet-500"
-            />
+              <input
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="Group Name"
+                className="w-full bg-gray-800 text-white p-3 rounded-lg mb-4 border border-gray-700 outline-none focus:border-violet-500"
+              />
 
-            <p className="text-gray-400 text-sm mb-2">Select Members:</p>
-            <div className="max-h-48 overflow-y-auto mb-4 space-y-2">
-              {users.map(user => (
-                <div key={user._id} onClick={() => toggleMemberSelection(user._id)} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${selectedMembers.includes(user._id) ? "bg-violet-600/30 border border-violet-500" : "bg-gray-800"}`}>
-                  <img src={user.profilePic || assets.avatar_icon} className="w-8 h-8 rounded-full" alt="" />
-                  <p className="text-sm text-gray-300">{user.fullName}</p>
-                  {selectedMembers.includes(user._id) && <span className="ml-auto text-violet-400">✓</span>}
-                </div>
-              ))}
-            </div>
+              <p className="text-gray-400 text-sm mb-2">Select Members:</p>
+              <div className="max-h-48 overflow-y-auto mb-4 space-y-2">
+                {users.map(user => (
+                  <div key={user._id} onClick={() => toggleMemberSelection(user._id)} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${selectedMembers.includes(user._id) ? "bg-violet-600/30 border border-violet-500" : "bg-gray-800"}`}>
+                    <img src={user.profilePic || assets.avatar_icon} className="w-8 h-8 rounded-full" alt="" />
+                    <p className="text-sm text-gray-300">{user.fullName}</p>
+                    {selectedMembers.includes(user._id) && <span className="ml-auto text-violet-400">✓</span>}
+                  </div>
+                ))}
+              </div>
 
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowGroupModal(false)} className="text-gray-400 hover:text-white px-4 py-2">Cancel</button>
-              <button onClick={handleCreateGroup} className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg">Create</button>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowGroupModal(false)} className="text-gray-400 hover:text-white px-4 py-2">Cancel</button>
+                <button onClick={handleCreateGroup} className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg">Create</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-    </div>
+    </div >
   );
 };

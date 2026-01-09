@@ -75,7 +75,13 @@ export const updateProfile = async (req, res) => {
     const userId = req.user._id;
     let updatedUser;
 
-    if (!profilePic) {
+    if (profilePic === "") {
+      updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { profilePic: "", bio, fullName, privacy: req.body.privacy },
+        { new: true }
+      );
+    } else if (!profilePic) {
       updatedUser = await User.findByIdAndUpdate(
         userId,
         { bio, fullName, privacy: req.body.privacy },

@@ -85,12 +85,21 @@ export const AuthProvider = ({ children }) => {
 
   const connectSocket = (userData) => {
     if (!userData || socket?.connected) return;
+    console.log("Initialize Socket Connection...");
     const backendUrl = process.env.REACT_APP_BACKEND_URL || (process.env.NODE_ENV === "development" ? "http://localhost:5001" : "/");
+    console.log("Socket Backend URL:", backendUrl);
+
     const newSocket = io(backendUrl, {
       query: {
         userId: userData._id,
         isGhostMode: userData.privacy?.ghostMode || false,
       },
+    });
+    newSocket.on("connect", () => {
+      console.log("Socket Connected Successfully!", newSocket.id);
+    });
+    newSocket.on("connect_error", (err) => {
+      console.error("Socket Connection Failed:", err.message);
     });
     newSocket.connect();
     setSocket(newSocket);

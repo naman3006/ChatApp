@@ -10,8 +10,18 @@ import { AuthContext } from "./context/authContext";
 import VideoCall from "./components/VideoCall";
 import CallNotification from "./components/CallNotification";
 
+import { Loader } from "lucide-react";
+
 function App() {
-  const { authUser } = useContext(AuthContext);
+  const { authUser, isCheckingAuth } = useContext(AuthContext);
+
+  if (isCheckingAuth && !authUser) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full bg-slate-900">
+        <Loader className="size-10 animate-spin text-white" />
+      </div>
+    )
+  }
 
   return (
     <div className="bg-[url('../src/chat-assets/bgImage.svg')] bg-contain">

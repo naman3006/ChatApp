@@ -9,6 +9,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(sessionStorage.getItem("token"));
   const [authUser, setAuthUser] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // Add loading state
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
 
@@ -36,6 +37,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.log(error);
       setAuthUser(null);
+    } finally {
+      setIsCheckingAuth(false);
     }
   };
 
@@ -114,6 +117,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     checkAuth,
+    isCheckingAuth,
     axios: axiosInstance,
     authUser,
     onlineUsers,

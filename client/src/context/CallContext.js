@@ -140,10 +140,21 @@ export const CallProvider = ({ children }) => {
             };
 
             peerConnection.current.ontrack = (event) => {
-                setUserVideo(event.streams[0]);
+                const remoteStream = event.streams[0];
+                // Force a new reference to trigger React state update
+                setUserVideo(new MediaStream(remoteStream.getTracks()));
+
                 if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = event.streams[0];
+                    remoteVideoRef.current.srcObject = remoteStream;
                 }
+
+                // Also listen for track changes on this stream
+                remoteStream.onaddtrack = () => {
+                    setUserVideo(new MediaStream(remoteStream.getTracks()));
+                };
+                remoteStream.onremovetrack = () => {
+                    setUserVideo(new MediaStream(remoteStream.getTracks()));
+                };
             };
 
             peerConnection.current.onnegotiationneeded = async () => {
@@ -215,10 +226,21 @@ export const CallProvider = ({ children }) => {
             };
 
             peerConnection.current.ontrack = (event) => {
-                setUserVideo(event.streams[0]);
+                const remoteStream = event.streams[0];
+                // Force a new reference to trigger React state update
+                setUserVideo(new MediaStream(remoteStream.getTracks()));
+
                 if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = event.streams[0];
+                    remoteVideoRef.current.srcObject = remoteStream;
                 }
+
+                // Also listen for track changes on this stream
+                remoteStream.onaddtrack = () => {
+                    setUserVideo(new MediaStream(remoteStream.getTracks()));
+                };
+                remoteStream.onremovetrack = () => {
+                    setUserVideo(new MediaStream(remoteStream.getTracks()));
+                };
             };
 
             peerConnection.current.onnegotiationneeded = async () => {

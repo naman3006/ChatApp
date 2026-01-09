@@ -1,5 +1,5 @@
 
-import { createContext, useState, useEffect, useRef, useContext } from "react";
+import { createContext, useState, useEffect, useRef, useContext, useCallback } from "react";
 import { AuthContext } from "./authContext";
 import toast from "react-hot-toast";
 
@@ -30,6 +30,33 @@ export const CallProvider = ({ children }) => {
             },
         ],
     };
+
+    const leaveCall = useCallback(() => {
+        setCallState("idle");
+
+        // Notify other user if in outgoing or active state
+        if (callState === "outgoing" && callDetails?.calleeId) {
+            socket.emit("endCall", { to: callDetails.calleeId });
+        } else if (callState === "active") {
+            const otherId = callDetails?.callerId || callDetails?.calleeId;
+            if (otherId) socket.emit("endCall", { to: otherId });
+        } else if (callState === "incoming" && callDetails?.callerId) {
+            socket.emit("rejectCall", { to: callDetails.callerId });
+        }
+
+        if (peerConnection.current) {
+            peerConnection.current.close();
+            peerConnection.current = null;
+        }
+
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+
+        setCallDetails(null);
+        setUserVideo(null);
+    }, [callState, callDetails, socket, stream]);
 
     useEffect(() => {
         if (!socket) return;
@@ -69,7 +96,7 @@ export const CallProvider = ({ children }) => {
             socket.off("callEnded");
             socket.off("callRejected");
         };
-    }, [socket]);
+    }, [socket, leaveCall]);
 
 
     const startCall = async (userToCallId, userToCallName, isVideo = true) => {
@@ -164,32 +191,7 @@ export const CallProvider = ({ children }) => {
         }
     };
 
-    const leaveCall = () => {
-        setCallState("idle");
 
-        // Notify other user if in outgoing or active state
-        if (callState === "outgoing" && callDetails?.calleeId) {
-            socket.emit("endCall", { to: callDetails.calleeId });
-        } else if (callState === "active") {
-            const otherId = callDetails?.callerId || callDetails?.calleeId;
-            if (otherId) socket.emit("endCall", { to: otherId });
-        } else if (callState === "incoming" && callDetails?.callerId) {
-            socket.emit("rejectCall", { to: callDetails.callerId });
-        }
-
-        if (peerConnection.current) {
-            peerConnection.current.close();
-            peerConnection.current = null;
-        }
-
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
-        }
-
-        setCallDetails(null);
-        setUserVideo(null);
-    };
 
     const toggleMute = () => {
         if (stream) {
@@ -205,6 +207,96 @@ export const CallProvider = ({ children }) => {
         }
     }
 
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
+
+    const toggleScreenShare = async () => {
+        if (isScreenSharing) {
+            // Stop sharing (Return to Camera)
+            try {
+                // 1. Get camera stream (video only, assuming we kept audio)
+                const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const videoTrack = cameraStream.getVideoTracks()[0];
+                const audioTrack = cameraStream.getAudioTracks()[0];
+
+                // 2. Replace video track for remote peer
+                const videoSender = peerConnection.current.getSenders().find(s => s.track.kind === 'video');
+                if (videoSender) {
+                    await videoSender.replaceTrack(videoTrack);
+                }
+
+                // 3. Replace audio track if we have a sender for it
+                const audioSender = peerConnection.current.getSenders().find(s => s.track.kind === 'audio');
+                if (audioSender) {
+                    await audioSender.replaceTrack(audioTrack);
+                }
+
+                // 4. Stop the screen share track to release the "sharing" indicator
+                stream.getVideoTracks().forEach(track => track.stop());
+
+                // 5. Update local state
+                setStream(cameraStream);
+                if (myVideo.current) {
+                    myVideo.current.srcObject = cameraStream;
+                }
+
+                setIsScreenSharing(false);
+                setIsVideoOff(false);
+
+            } catch (error) {
+                console.error("Error switching back to camera:", error);
+                toast.error("Failed to access camera");
+            }
+        } else {
+            // Start sharing
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const screenTrack = screenStream.getVideoTracks()[0];
+
+                screenTrack.onended = () => {
+                    setIsScreenSharing(false);
+                    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(camStream => {
+                        const vTrack = camStream.getVideoTracks()[0];
+                        const sender = peerConnection.current.getSenders().find(s => s.track.kind === 'video');
+                        if (sender) sender.replaceTrack(vTrack);
+                        setStream(camStream);
+                        if (myVideo.current) myVideo.current.srcObject = camStream;
+                    }).catch(e => console.error("Auto-restore camera failed", e));
+                };
+
+                // Replace sender track
+                const sender = peerConnection.current.getSenders().find(s => s.track.kind === 'video');
+                if (sender) {
+                    await sender.replaceTrack(screenTrack);
+                } else {
+                    screenTrack.stop();
+                    toast.error("Screen sharing requires a video call.");
+                    return;
+                }
+
+                // Stop local camera video
+                stream.getVideoTracks().forEach(track => track.stop());
+
+                // Create mixed stream: Screen Video + Existing Audio
+                const newStream = new MediaStream([screenTrack, ...stream.getAudioTracks()]);
+
+                setStream(newStream);
+                if (myVideo.current) {
+                    myVideo.current.srcObject = newStream;
+                }
+
+                setIsScreenSharing(true);
+                setIsVideoOff(false);
+
+            } catch (error) {
+                console.error("Error starting screen share:", error);
+                if (error.name === 'NotAllowedError') {
+                    toast.error("Screen sharing permission denied");
+                    setIsScreenSharing(false);
+                }
+            }
+        }
+    };
+
     return (
         <CallContext.Provider value={{
             callState,
@@ -219,7 +311,9 @@ export const CallProvider = ({ children }) => {
             toggleMute,
             toggleVideo,
             isMuted,
-            isVideoOff
+            isVideoOff,
+            isScreenSharing,
+            toggleScreenShare
         }}>
             {children}
         </CallContext.Provider>

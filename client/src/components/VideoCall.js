@@ -1,7 +1,7 @@
 
 import React, { useContext } from 'react';
 import { CallContext } from '../context/CallContext';
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp } from 'lucide-react';
 
 const VideoCall = () => {
     const {
@@ -14,7 +14,9 @@ const VideoCall = () => {
         toggleMute,
         toggleVideo,
         isMuted,
-        isVideoOff
+        isVideoOff,
+        toggleScreenShare,
+        isScreenSharing
     } = useContext(CallContext);
 
     if (callState === 'idle' || callState === 'incoming') return null;
@@ -33,7 +35,8 @@ const VideoCall = () => {
                 )}
 
                 {/* Fallback for outgoing or audio-only remote */}
-                {((callState === 'outgoing') || (!userVideo && callState === 'active')) && (
+                {/* Show if outgoing OR (active AND (no stream OR no video tracks)) */}
+                {((callState === 'outgoing') || (callState === 'active' && (!userVideo || userVideo.getVideoTracks().length === 0))) && (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
                             <div className="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl text-white font-bold">
@@ -56,9 +59,9 @@ const VideoCall = () => {
                         playsInline
                         muted
                         autoPlay
-                        className={`w-full h-full object-cover ${!callDetails?.isVideo ? 'hidden' : ''}`}
+                        className={`w-full h-full object-cover ${!isScreenSharing && !callDetails?.isVideo ? 'hidden' : ''}`}
                     />
-                    {!callDetails?.isVideo && (
+                    {!isScreenSharing && !callDetails?.isVideo && (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">
                             Audio Only
                         </div>
@@ -87,6 +90,13 @@ const VideoCall = () => {
                     className={`p-4 rounded-full transition-all ${isVideoOff ? 'bg-red-500 text-white' : 'bg-gray-700 text-white hover:bg-gray-600'}`}
                 >
                     {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
+                </button>
+
+                <button
+                    onClick={toggleScreenShare}
+                    className={`p-4 rounded-full transition-all ${isScreenSharing ? 'bg-blue-600 text-white' : 'bg-gray-700 text-white hover:bg-gray-600'}`}
+                >
+                    <MonitorUp size={24} />
                 </button>
             </div>
         </div>

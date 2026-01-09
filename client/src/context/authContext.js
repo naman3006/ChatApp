@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }) => {
 
   const connectSocket = (userData) => {
     if (!userData || socket?.connected) return;
-    const backendUrl = process.env.NODE_ENV === "development" ? "http://localhost:5001" : "/";
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || (process.env.NODE_ENV === "development" ? "http://localhost:5001" : "/");
     const newSocket = io(backendUrl, {
       query: {
         userId: userData._id,

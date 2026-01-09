@@ -80,6 +80,19 @@ export const ChatProvider = ({ children }) => {
           if (prevMessages.some(m => m._id === res.data.newMessage._id)) return prevMessages;
           return [...prevMessages, res.data.newMessage];
         });
+
+        // Move recipient to top of user list
+        setUsers((prevUsers) => {
+          if (!selectedUser) return prevUsers;
+          const userIndex = prevUsers.findIndex(u => u._id === selectedUser._id);
+          if (userIndex > 0) {
+            const newUsers = [...prevUsers];
+            const [user] = newUsers.splice(userIndex, 1);
+            newUsers.unshift(user);
+            return newUsers;
+          }
+          return prevUsers;
+        });
       } else {
         toast.error(res.data.message);
       }
@@ -106,11 +119,35 @@ export const ChatProvider = ({ children }) => {
             return [...prevMessages, newMessage];
           });
           axios.put(`/messages/mark/${newMessage._id}`);
+
+          // Move sender to top
+          setUsers((prevUsers) => {
+            const userIndex = prevUsers.findIndex(u => u._id === newMessage.senderId);
+            if (userIndex > 0) {
+              const newUsers = [...prevUsers];
+              const [user] = newUsers.splice(userIndex, 1);
+              newUsers.unshift(user);
+              return newUsers;
+            }
+            return prevUsers;
+          });
         } else if (selectedUser && newMessage.receiverId === selectedUser._id && newMessage.senderId === authUser._id) {
           // Correctly handle own messages sent from another tab/device
           setMessages((prevMessages) => {
             if (prevMessages.some(m => m._id === newMessage._id)) return prevMessages;
             return [...prevMessages, newMessage];
+          });
+
+          // Move recipient to top (handled by self sync)
+          setUsers((prevUsers) => {
+            const userIndex = prevUsers.findIndex(u => u._id === newMessage.receiverId);
+            if (userIndex > 0) {
+              const newUsers = [...prevUsers];
+              const [user] = newUsers.splice(userIndex, 1);
+              newUsers.unshift(user);
+              return newUsers;
+            }
+            return prevUsers;
           });
         } else {
           // Toast logic for DM (incoming from others)
@@ -145,6 +182,18 @@ export const ChatProvider = ({ children }) => {
             ...prev,
             [newMessage.senderId]: (prev?.[newMessage.senderId] || 0) + 1,
           }));
+
+          // Move sender to top
+          setUsers((prevUsers) => {
+            const userIndex = prevUsers.findIndex(u => u._id === newMessage.senderId);
+            if (userIndex > 0) {
+              const newUsers = [...prevUsers];
+              const [user] = newUsers.splice(userIndex, 1);
+              newUsers.unshift(user);
+              return newUsers;
+            }
+            return prevUsers;
+          });
         }
       }
     });

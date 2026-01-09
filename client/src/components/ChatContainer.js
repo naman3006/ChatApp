@@ -615,7 +615,7 @@ export const ChatContainer = () => {
                     </div>
                   )}
 
-                  <div className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"} max-w-[85%] sm:max-w-[75%] md:max-w-[70%]`}>
+                  <div className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"} max-w-[80%] md:max-w-[70%] lg:max-w-[60%]`}>
 
                     {/* Sender Name for Groups (Others only) */}
                     {selectedGroup && !isMyMessage && (
@@ -642,7 +642,7 @@ export const ChatContainer = () => {
                           </div>
                           {msg.text && (
                             <p
-                              className={`p-3 w-full sm:min-w-[120px] text-sm md:text-[15px] rounded-2xl mt-2 break-words shadow-sm leading-relaxed ${!isMyMessage
+                              className={`p-3 w-full sm:min-w-[120px] text-sm md:text-[15px] rounded-2xl mt-2 break-words break-all shadow-sm leading-relaxed ${!isMyMessage
                                 ? "rounded-tl-none bg-gray-800 text-gray-100 border border-gray-700"
                                 : "rounded-tr-none bg-gradient-to-br from-violet-600 to-indigo-600 text-white border border-white/10"
                                 } `}
@@ -675,7 +675,7 @@ export const ChatContainer = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className={`relative px-4 py-2.5 rounded-2xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all ${!isMyMessage
+                          <div className={`relative px-4 py-2.5 rounded-2xl md:text-[15px] font-normal leading-relaxed break-words break-all shadow-sm transition-all ${!isMyMessage
                             ? "bg-white/5 backdrop-blur-sm border border-white/10 text-gray-100 rounded-tl-none hover:bg-white/10"
                             : "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-violet-500/20 rounded-tr-none border border-white/10"}`}>
                             <p>{msg.text}</p>

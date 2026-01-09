@@ -89,12 +89,29 @@ export const CallProvider = ({ children }) => {
             toast("Call rejected");
         });
 
+        socket.on("renegotiate", async ({ signal, from }) => {
+            if (!peerConnection.current) return;
+            try {
+                if (signal.type === 'offer') {
+                    await peerConnection.current.setRemoteDescription(new RTCSessionDescription(signal));
+                    const answer = await peerConnection.current.createAnswer();
+                    await peerConnection.current.setLocalDescription(answer);
+                    socket.emit("renegotiate", { signal: answer, to: from });
+                } else if (signal.type === 'answer') {
+                    await peerConnection.current.setRemoteDescription(new RTCSessionDescription(signal));
+                }
+            } catch (error) {
+                console.error("Error handling renegotiation:", error);
+            }
+        });
+
         return () => {
             socket.off("callUser");
             socket.off("callAccepted");
             socket.off("iceCandidate");
             socket.off("callEnded");
             socket.off("callRejected");
+            socket.off("renegotiate");
         };
     }, [socket, leaveCall]);
 
@@ -126,6 +143,16 @@ export const CallProvider = ({ children }) => {
                 setUserVideo(event.streams[0]);
                 if (remoteVideoRef.current) {
                     remoteVideoRef.current.srcObject = event.streams[0];
+                }
+            };
+
+            peerConnection.current.onnegotiationneeded = async () => {
+                try {
+                    const offer = await peerConnection.current.createOffer();
+                    await peerConnection.current.setLocalDescription(offer);
+                    socket.emit("renegotiate", { signal: offer, to: userToCallId }); // use userToCallId from closure
+                } catch (err) {
+                    console.error("Negotiation error:", err);
                 }
             };
 
@@ -174,6 +201,16 @@ export const CallProvider = ({ children }) => {
                 setUserVideo(event.streams[0]);
                 if (remoteVideoRef.current) {
                     remoteVideoRef.current.srcObject = event.streams[0];
+                }
+            };
+
+            peerConnection.current.onnegotiationneeded = async () => {
+                try {
+                    const offer = await peerConnection.current.createOffer();
+                    await peerConnection.current.setLocalDescription(offer);
+                    socket.emit("renegotiate", { signal: offer, to: callDetails.callerId });
+                } catch (err) {
+                    console.error("Negotiation error:", err);
                 }
             };
 

@@ -87,6 +87,31 @@ io.on("connection", async (socket) => {
         io.to(data.to).emit("callRejected");
     });
 
+    socket.on("renegotiate", (data) => {
+        // data: { to: otherUserId, signal: signal }
+        io.to(data.to).emit("renegotiate", { signal: data.signal, from: socket.handshake.query.userId });
+    });
+
+    // --- Typing Indicators ---
+    socket.on("typing", (data) => {
+        // data: { to: targetId, from: userId, isGroup: boolean }
+        const { to, from, isGroup } = data;
+        if (isGroup) {
+            socket.to(`group_${to}`).emit("typing", { from, isGroup: true, groupId: to });
+        } else {
+            io.to(to).emit("typing", { from, isGroup: false });
+        }
+    });
+
+    socket.on("stopTyping", (data) => {
+        const { to, from, isGroup } = data;
+        if (isGroup) {
+            socket.to(`group_${to}`).emit("stopTyping", { from, isGroup: true, groupId: to });
+        } else {
+            io.to(to).emit("stopTyping", { from, isGroup: false });
+        }
+    });
+
     // -------------------------------
 
     socket.on("disconnect", async () => {

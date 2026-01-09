@@ -177,19 +177,36 @@ export const CallProvider = ({ children }) => {
     const answerCall = async () => {
         setCallState("active");
 
+        let currentStream = null;
         try {
             const isVideo = callDetails.isVideo;
-            const currentStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+            // Try to get media stream. If it fails (e.g. no camera), we proceed without local stream or with audio only
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+            } catch (mediaError) {
+                console.warn("Retrying with audio only due to media error:", mediaError);
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                } catch (audioError) {
+                    console.error("Failed to get audio stream:", audioError);
+                    toast.error("Could not access microphone.");
+                    // We can still answer to Receive only? 
+                    // For now, let's proceed with null stream (receive only mode)
+                }
+            }
+
             setStream(currentStream);
-            if (myVideo.current) {
+            if (myVideo.current && currentStream) {
                 myVideo.current.srcObject = currentStream;
             }
 
             peerConnection.current = new RTCPeerConnection(servers);
 
-            currentStream.getTracks().forEach((track) => {
-                peerConnection.current.addTrack(track, currentStream);
-            });
+            if (currentStream) {
+                currentStream.getTracks().forEach((track) => {
+                    peerConnection.current.addTrack(track, currentStream);
+                });
+            }
 
             peerConnection.current.onicecandidate = (event) => {
                 if (event.candidate) {
@@ -248,40 +265,67 @@ export const CallProvider = ({ children }) => {
 
     const toggleScreenShare = async () => {
         if (isScreenSharing) {
-            // Stop sharing (Return to Camera)
+            // Stop sharing (Return to Camera if possible)
             try {
-                // 1. Get camera stream (video only, assuming we kept audio)
-                const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                const videoTrack = cameraStream.getVideoTracks()[0];
-                const audioTrack = cameraStream.getAudioTracks()[0];
-
-                // 2. Replace video track for remote peer
-                const videoSender = peerConnection.current.getSenders().find(s => s.track.kind === 'video');
-                if (videoSender) {
-                    await videoSender.replaceTrack(videoTrack);
+                let cameraStream = null;
+                try {
+                    // Try to restore camera
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                } catch (e) {
+                    console.warn("Could not restore camera:", e);
+                    // If failed (no camera), try audio only?
+                    try {
+                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                    } catch (ae) {
+                        console.error("Could not restore audio either", ae);
+                    }
                 }
 
-                // 3. Replace audio track if we have a sender for it
-                const audioSender = peerConnection.current.getSenders().find(s => s.track.kind === 'audio');
-                if (audioSender) {
-                    await audioSender.replaceTrack(audioTrack);
-                }
-
-                // 4. Stop the screen share track to release the "sharing" indicator
+                // Stop the screen share track
                 stream.getVideoTracks().forEach(track => track.stop());
 
-                // 5. Update local state
-                setStream(cameraStream);
-                if (myVideo.current) {
-                    myVideo.current.srcObject = cameraStream;
+                if (cameraStream) {
+                    const videoTrack = cameraStream.getVideoTracks()[0];
+                    const audioTrack = cameraStream.getAudioTracks()[0];
+
+                    const videoSender = peerConnection.current.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (videoSender && videoTrack) {
+                        await videoSender.replaceTrack(videoTrack);
+                    } else if (videoSender && !videoTrack) {
+                        // If we had a video sender but no camera video track (e.g., audio-only fallback), stop sending video
+                        await videoSender.replaceTrack(null);
+                    } else if (!videoSender && videoTrack) {
+                        // If no video sender existed (e.g., audio-only call) but we now have a camera video track
+                        peerConnection.current.addTrack(videoTrack, cameraStream);
+                    }
+
+                    const audioSender = peerConnection.current.getSenders().find(s => s.track && s.track.kind === 'audio');
+                    if (audioSender && audioTrack) {
+                        await audioSender.replaceTrack(audioTrack);
+                    } else if (!audioSender && audioTrack) {
+                        // If no audio sender existed but we now have an audio track
+                        peerConnection.current.addTrack(audioTrack, cameraStream);
+                    }
+
+                    setStream(cameraStream);
+                    if (myVideo.current) {
+                        myVideo.current.srcObject = cameraStream;
+                    }
+                } else {
+                    // No camera stream could be obtained, revert to existing audio stream if any, or null
+                    const audioOnlyStream = new MediaStream(stream.getAudioTracks());
+                    setStream(audioOnlyStream);
+                    if (myVideo.current) {
+                        myVideo.current.srcObject = audioOnlyStream;
+                    }
                 }
 
                 setIsScreenSharing(false);
-                setIsVideoOff(false);
+                setIsVideoOff(!cameraStream?.getVideoTracks()?.length); // If no video track, video is off
 
             } catch (error) {
-                console.error("Error switching back to camera:", error);
-                toast.error("Failed to access camera");
+                console.error("Error switching back from screen share:", error);
+                toast.error("Error stopping screen share");
             }
         } else {
             // Start sharing
@@ -290,27 +334,20 @@ export const CallProvider = ({ children }) => {
                 const screenTrack = screenStream.getVideoTracks()[0];
 
                 screenTrack.onended = () => {
-                    setIsScreenSharing(false);
-                    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(camStream => {
-                        const vTrack = camStream.getVideoTracks()[0];
-                        const sender = peerConnection.current.getSenders().find(s => s.track.kind === 'video');
-                        if (sender) sender.replaceTrack(vTrack);
-                        setStream(camStream);
-                        if (myVideo.current) myVideo.current.srcObject = camStream;
-                    }).catch(e => console.error("Auto-restore camera failed", e));
+                    // Handle case where user stops sharing via browser UI
+                    toggleScreenShare(); // This calls the "if (isScreenSharing)" block
                 };
 
-                // Replace sender track
-                const sender = peerConnection.current.getSenders().find(s => s.track.kind === 'video');
+                const sender = peerConnection.current.getSenders().find(s => s.track && s.track.kind === 'video');
                 if (sender) {
                     await sender.replaceTrack(screenTrack);
                 } else {
-                    screenTrack.stop();
-                    toast.error("Screen sharing requires a video call.");
-                    return;
+                    // Audio-only call previously, now adding video (screen)
+                    // This triggers 'onnegotiationneeded'
+                    peerConnection.current.addTrack(screenTrack, stream);
                 }
 
-                // Stop local camera video
+                // Stop local camera video if it was running
                 stream.getVideoTracks().forEach(track => track.stop());
 
                 // Create mixed stream: Screen Video + Existing Audio

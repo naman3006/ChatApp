@@ -12,6 +12,7 @@ export const ChatProvider = ({ children }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null); // New Group State
   const [unseenMessages, setUnseenMessages] = useState(null);
+  const [typingData, setTypingData] = useState({}); // { [chatId]: Set<userId> }
 
   const { socket, axios, authUser, checkAuth } = useContext(AuthContext);
 
@@ -260,13 +261,39 @@ export const ChatProvider = ({ children }) => {
 
     socket.on("groupRemoved", (groupId) => {
       setGroups((prev) => prev.filter(g => g._id !== groupId));
-
-      // If currently viewing this group, deselect
       if (selectedGroup && selectedGroup._id === groupId) {
         setSelectedGroup(null);
         toast("You were removed from the group");
       }
     });
+
+    socket.on("typing", ({ from, isGroup, groupId }) => {
+      const chatId = isGroup ? groupId : from;
+      setTypingData((prev) => {
+        const currentTypers = new Set(prev[chatId] || []);
+        currentTypers.add(from);
+        return { ...prev, [chatId]: currentTypers };
+      });
+    });
+
+    socket.on("stopTyping", ({ from, isGroup, groupId }) => {
+      const chatId = isGroup ? groupId : from;
+      setTypingData((prev) => {
+        const currentTypers = new Set(prev[chatId] || []);
+        currentTypers.delete(from);
+        return { ...prev, [chatId]: new Set(currentTypers) };
+      });
+    });
+  };
+
+  const sendTyping = (chatId, isGroup) => {
+    if (!socket) return;
+    socket.emit("typing", { to: chatId, from: authUser._id, isGroup });
+  };
+
+  const sendStopTyping = (chatId, isGroup) => {
+    if (!socket) return;
+    socket.emit("stopTyping", { to: chatId, from: authUser._id, isGroup });
   };
 
   const unsubscribeFromMessages = () => {
@@ -282,6 +309,8 @@ export const ChatProvider = ({ children }) => {
       socket.off("groupUpdated");
       socket.off("groupAdded");
       socket.off("groupRemoved");
+      socket.off("typing");
+      socket.off("stopTyping");
     }
   };
 
@@ -546,7 +575,10 @@ export const ChatProvider = ({ children }) => {
     unpinMessage,
     blockUser,
     unblockUser,
-    reportUser
+    reportUser,
+    typingData,
+    sendTyping,
+    sendStopTyping
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

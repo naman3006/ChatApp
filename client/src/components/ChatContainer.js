@@ -32,7 +32,10 @@ export const ChatContainer = () => {
     leaveGroup,
     pinMessage,
     unpinMessage,
-    unblockUser
+    unblockUser,
+    typingData,
+    sendTyping,
+    sendStopTyping
   } = useContext(ChatContext);
   const { startCall } = useContext(CallContext);
   const { authUser, onlineUsers } = useContext(AuthContext);
@@ -50,6 +53,28 @@ export const ChatContainer = () => {
   const [activeMenuId, setActiveMenuId] = useState(null); // To track which message's menu is open
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+
+  const typingTimeoutRef = useRef(null);
+
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+
+    const chatId = selectedGroup ? selectedGroup._id : selectedUser._id;
+    const isGroup = !!selectedGroup;
+
+    if (e.target.value.trim().length > 0) {
+      sendTyping(chatId, isGroup);
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+      typingTimeoutRef.current = setTimeout(() => {
+        sendStopTyping(chatId, isGroup);
+      }, 3000);
+    } else {
+      sendStopTyping(chatId, isGroup);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    }
+  };
 
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -386,16 +411,49 @@ export const ChatContainer = () => {
             {!selectedGroup && onlineUsers.includes(selectedUser._id) &&
               <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>}
           </p>
-          {selectedGroup && (
-            <p className="text-xs text-gray-400 cursor-pointer hover:text-gray-300" onClick={() => setShowGroupInfo(true)}>
-              {selectedGroup.members.length} members
-            </p>
-          )}
-          {!selectedGroup && !onlineUsers.includes(selectedUser._id) && selectedUser.lastSeen && (
-            <p className="text-xs text-gray-400">
-              {formatLastSeen(selectedUser.lastSeen)}
-            </p>
-          )}
+          {(() => {
+            const chatId = selectedGroup ? selectedGroup._id : selectedUser._id;
+            const typers = typingData[chatId] ? Array.from(typingData[chatId]) : [];
+            const otherTypers = typers.filter(id => id !== authUser._id);
+
+            if (otherTypers.length > 0) {
+              let typingText = "";
+              if (selectedGroup) {
+                if (otherTypers.length === 1) {
+                  const typer = users.find(u => u._id === otherTypers[0]);
+                  typingText = `${typer ? typer.fullName : "Someone"} is typing...`;
+                } else {
+                  typingText = "Several people are typing...";
+                }
+              } else {
+                typingText = "typing...";
+              }
+
+              return (
+                <p className="text-xs text-green-400 font-medium animate-pulse">
+                  {typingText}
+                </p>
+              );
+            }
+
+            if (selectedGroup) {
+              return (
+                <p className="text-xs text-gray-400 cursor-pointer hover:text-gray-300" onClick={() => setShowGroupInfo(true)}>
+                  {selectedGroup.members.length} members
+                </p>
+              );
+            }
+
+            if (!onlineUsers.includes(selectedUser._id) && selectedUser.lastSeen) {
+              return (
+                <p className="text-xs text-gray-400">
+                  {formatLastSeen(selectedUser.lastSeen)}
+                </p>
+              );
+            }
+
+            return null;
+          })()}
         </div>
 
         {!selectedGroup && (
@@ -844,7 +902,7 @@ export const ChatContainer = () => {
                         {amIAdmin && member._id !== authUser._id && (
                           <div className="flex items-center gap-1 opacity-0 group-hover/member:opacity-100 transition-opacity ml-auto">
                             <button
-                              onClick={() => toggleGroupAdmin(selectedGroup._id, member._id)}
+                              onClick={() => handleToggleAdmin(member._id)}
                               className={`text-[10px] px-2 py-1 rounded transition-colors ${isMemberAdmin
                                 ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
                                 : "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20"
@@ -854,7 +912,7 @@ export const ChatContainer = () => {
                               {isMemberAdmin ? "Demote" : "Promote"}
                             </button>
                             <button
-                              onClick={() => removeGroupMember(selectedGroup._id, member._id)}
+                              onClick={() => handleRemoveMember(member._id)}
                               className="text-[10px] bg-red-500/10 text-red-400 px-2 py-1 rounded hover:bg-red-500/20 border border-red-500/20"
                               title="Remove User"
                             >
@@ -1002,7 +1060,7 @@ export const ChatContainer = () => {
           <div className="flex items-center gap-3">
             <div className="flex-1 flex items-center bg-gray-100/12 px-3 rounded-full">
               <input
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
                 value={input}
                 onKeyDown={(e) => (e.key === "Enter" ? handleSendMessage(e) : null)}
                 type="text"

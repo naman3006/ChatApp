@@ -100,8 +100,8 @@ const VideoCall = () => {
         <div
             ref={containerRef}
             className={`fixed z-50 transition-all duration-300 ${isPip
-                    ? 'pointer-events-none'
-                    : 'inset-0 bg-gray-900 bg-opacity-95 flex flex-col items-center justify-center p-4'
+                ? 'pointer-events-none'
+                : 'inset-0 bg-gray-900 bg-opacity-95 flex flex-col items-center justify-center p-4'
                 } ${isFullScreen ? 'p-0' : ''}`}
         >
             <div
@@ -178,8 +178,8 @@ const VideoCall = () => {
 
                 {/* Controls Overlay */}
                 <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-all duration-300 flex justify-center gap-2 md:gap-8 ${isPip
-                        ? 'p-2 opacity-0 hover:opacity-100' // Auto-hide in PiP
-                        : `p-6 opacity-0 hover:opacity-100 focus-within:opacity-100 ${isFullScreen ? '' : 'rounded-b-xl'}`
+                    ? 'p-2 opacity-0 hover:opacity-100' // Auto-hide in PiP
+                    : `p-6 opacity-0 hover:opacity-100 focus-within:opacity-100 ${isFullScreen ? '' : 'rounded-b-xl'}`
                     }`}>
 
                     <button

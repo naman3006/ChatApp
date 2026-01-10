@@ -92,6 +92,11 @@ io.on("connection", async (socket) => {
         io.to(data.to).emit("renegotiate", { signal: data.signal, from: socket.handshake.query.userId });
     });
 
+    socket.on("cameraStatus", (data) => {
+        // data: { to: otherUserId, isVideoOff: boolean }
+        io.to(data.to).emit("cameraStatus", { isVideoOff: data.isVideoOff });
+    });
+
     // --- Typing Indicators ---
     socket.on("typing", (data) => {
         // data: { to: targetId, from: userId, isGroup: boolean }

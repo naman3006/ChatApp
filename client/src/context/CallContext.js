@@ -14,6 +14,7 @@ export const CallProvider = ({ children }) => {
     const [userVideo, setUserVideo] = useState(null); // Remote stream
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+    const [remoteVideoOff, setRemoteVideoOff] = useState(false);
 
     const myVideo = useRef();
     const remoteVideoRef = useRef();
@@ -56,15 +57,23 @@ export const CallProvider = ({ children }) => {
 
         setCallDetails(null);
         setUserVideo(null);
+        setIsMuted(false);
+        setIsVideoOff(false);
+        setRemoteVideoOff(false);
     }, [callState, callDetails, socket, stream]);
 
     useEffect(() => {
         if (!socket) return;
 
+        socket.on("cameraStatus", ({ isVideoOff }) => {
+            setRemoteVideoOff(isVideoOff);
+        });
+
         socket.on("callUser", ({ from, name: callerName, signal, isVideo }) => {
             console.log("Incoming call from", callerName);
             setCallDetails({ callerId: from, callerName, signal, isVideo });
             setCallState("incoming");
+            setRemoteVideoOff(!isVideo);
         });
 
         socket.on("callAccepted", (signal) => {
@@ -106,6 +115,7 @@ export const CallProvider = ({ children }) => {
         });
 
         return () => {
+            socket.off("cameraStatus");
             socket.off("callUser");
             socket.off("callAccepted");
             socket.off("iceCandidate");
@@ -119,6 +129,7 @@ export const CallProvider = ({ children }) => {
     const startCall = async (userToCallId, userToCallName, isVideo = true) => {
         setCallState("outgoing");
         setCallDetails({ calleeId: userToCallId, calleeName: userToCallName, isVideo });
+        setIsVideoOff(!isVideo);
 
         try {
             const currentStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
@@ -187,6 +198,7 @@ export const CallProvider = ({ children }) => {
 
     const answerCall = async () => {
         setCallState("active");
+        setIsVideoOff(!callDetails.isVideo);
 
         let currentStream = null;
         try {
@@ -270,18 +282,75 @@ export const CallProvider = ({ children }) => {
 
 
     const toggleMute = () => {
-        if (stream) {
-            stream.getAudioTracks()[0].enabled = !stream.getAudioTracks()[0].enabled;
-            setIsMuted(!stream.getAudioTracks()[0].enabled);
+        if (!stream) return;
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            setIsMuted(!audioTrack.enabled);
+        } else {
+            console.warn("toggleMute: No audio track found in stream");
         }
-    }
+    };
 
-    const toggleVideo = () => {
-        if (stream) {
-            stream.getVideoTracks()[0].enabled = !stream.getVideoTracks()[0].enabled;
-            setIsVideoOff(!stream.getVideoTracks()[0].enabled);
+    const toggleVideo = async () => {
+        if (!stream) {
+            toast.error("No active call stream found.");
+            return;
         }
-    }
+
+        const videoTrack = stream.getVideoTracks()[0];
+
+        if (videoTrack) {
+            // Video track exists - standard toggle behavior
+            videoTrack.enabled = !videoTrack.enabled;
+            setIsVideoOff(!videoTrack.enabled);
+
+            // Emit status
+            const otherId = callDetails?.callerId || callDetails?.calleeId;
+            if (otherId) socket.emit("cameraStatus", { to: otherId, isVideoOff: !videoTrack.enabled });
+
+        } else {
+            // No video track - Attempt to upgrade to video call (Advanced Feature)
+            try {
+                const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const newVideoTrack = cameraStream.getVideoTracks()[0];
+
+                if (!newVideoTrack) throw new Error("No video track obtained");
+
+                // Add the track to the local stream
+                stream.addTrack(newVideoTrack);
+                setIsVideoOff(false);
+
+                // Emit status
+                const otherId = callDetails?.callerId || callDetails?.calleeId;
+                if (otherId) socket.emit("cameraStatus", { to: otherId, isVideoOff: false });
+
+                // Add the track to the PeerConnection
+                if (peerConnection.current) {
+                    const senders = peerConnection.current.getSenders();
+                    const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+
+                    if (videoSender) {
+                        // If there was a sender (e.g. disabled track), replace it
+                        await videoSender.replaceTrack(newVideoTrack);
+                    } else {
+                        // Add new transceiver/sender, triggers renegotiation
+                        peerConnection.current.addTrack(newVideoTrack, stream);
+                    }
+                }
+
+                toast.success("Camera enabled");
+
+            } catch (error) {
+                console.error("Error upgrading to video:", error);
+                if (error.name === 'NotAllowedError') {
+                    toast.error("Camera permission denied");
+                } else {
+                    toast.error("Could not access camera");
+                }
+            }
+        }
+    };
 
     const [isScreenSharing, setIsScreenSharing] = useState(false);
 
@@ -408,6 +477,7 @@ export const CallProvider = ({ children }) => {
             toggleVideo,
             isMuted,
             isVideoOff,
+            remoteVideoOff,
             isScreenSharing,
             toggleScreenShare
         }}>

@@ -744,18 +744,45 @@ export const ChatContainer = () => {
                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                             </button>
                             {activeMenuId === msg._id && (
-                              <div className="absolute bottom-full right-0 mb-2 w-32 bg-gray-900 rounded-xl shadow-xl z-20 overflow-hidden border border-gray-700 animate-in fade-in zoom-in-95 origin-bottom-right">
-                                <button
-                                  onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
-                                  className={`block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 flex items-center gap-2 ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
-                                >
-                                  {msg.pinned ? <span>Unpin</span> : <span>Pin</span>}
-                                </button>
-                                {!msg.image && !msg.audio && (
-                                  <button onClick={() => startEditing(msg)} className="block w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 border-t border-gray-800">Edit</button>
-                                )}
-                                <button onClick={() => handleDeleteMessage(msg._id)} className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-gray-800 border-t border-gray-800">Delete</button>
-                              </div>
+                              <>
+                                {/* Mobile Backdrop */}
+                                <div
+                                  className="md:hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-200"
+                                  onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }}
+                                />
+                                {/* Menu Container - Responsive Styles */}
+                                <div className={`
+                                  z-[101] bg-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden
+                                  fixed bottom-4 left-4 right-4 w-auto origin-bottom animate-in slide-in-from-bottom-4 fade-in duration-200
+                                  md:absolute md:bottom-full md:right-0 md:w-40 md:mb-2 md:left-auto md:top-auto md:inset-auto md:animate-in md:fade-in md:zoom-in-95 md:origin-bottom-right md:z-50
+                                `}>
+                                  <button
+                                    onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
+                                    className={`w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-gray-200 hover:bg-gray-800 flex items-center gap-3 md:gap-2 active:bg-gray-800 transition-colors ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
+                                  >
+                                    <span className="md:hidden p-2 bg-gray-800 rounded-full text-violet-400">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+                                    </span>
+                                    {msg.pinned ? "Unpin Message" : "Pin Message"}
+                                  </button>
+
+                                  {!msg.image && !msg.audio && !msg.text.match(/^(Audio|Video) Call ended •/) && (
+                                    <button onClick={() => startEditing(msg)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-gray-200 hover:bg-gray-800 border-t border-gray-800/50 active:bg-gray-800 flex items-center gap-3 md:gap-2">
+                                      <span className="md:hidden p-2 bg-gray-800 rounded-full text-blue-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                      </span>
+                                      Edit Message
+                                    </button>
+                                  )}
+
+                                  <button onClick={() => handleDeleteMessage(msg._id)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-red-400 hover:bg-gray-800 border-t border-gray-800/50 active:bg-gray-800 flex items-center gap-3 md:gap-2">
+                                    <span className="md:hidden p-2 bg-red-500/10 rounded-full text-red-400">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                                    </span>
+                                    Delete Message
+                                  </button>
+                                </div>
+                              </>
                             )}
                           </div>
                         )}

@@ -316,7 +316,7 @@ export const ChatProvider = ({ children }) => {
 
   const updateMessage = async (messageId, newText) => {
     try {
-      const { data } = await axios.put(`/messages/update/${messageId}`, { text: newText });
+      const { data } = await axios.put(`/messages/${messageId}`, { text: newText });
       if (data.success) {
         setMessages((prevMessages) => prevMessages.map(msg => msg._id === messageId ? data.message : msg));
         toast.success("Message updated");

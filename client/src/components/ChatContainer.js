@@ -53,10 +53,27 @@ export const ChatContainer = () => {
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
   const [activeMenuId, setActiveMenuId] = useState(null); // To track which message's menu is open
+  const [activeReactionId, setActiveReactionId] = useState(null);
+  const touchTimer = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   const typingTimeoutRef = useRef(null);
+
+  // Long Press Logic for Mobile Reactions
+  const handleTouchStart = (msgId) => {
+    touchTimer.current = setTimeout(() => {
+      setActiveReactionId(msgId);
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchTimer.current) {
+      clearTimeout(touchTimer.current);
+      touchTimer.current = null;
+    }
+  };
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -77,6 +94,7 @@ export const ChatContainer = () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     }
   };
+
 
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -373,7 +391,7 @@ export const ChatContainer = () => {
   }, [messages, selectedUser, selectedGroup]);
 
   return (selectedUser || selectedGroup) ? (
-    <div className="h-full w-full overflow-hidden relative flex flex-col backdrop-blur-lg" onClick={() => setActiveMenuId(null)}>
+    <div className="h-full w-full overflow-hidden relative flex flex-col backdrop-blur-lg" onClick={() => { setActiveMenuId(null); setActiveReactionId(null); }}>
       <div className="flex items-center gap-3 py-3 px-4 border-b border-stone-500 bg-gray-900/50 backdrop-blur-md">
 
         {/* Mobile Back Button */}
@@ -622,7 +640,11 @@ export const ChatContainer = () => {
                       <span className="text-[10px] text-gray-400 ml-1 mb-1 font-medium tracking-wide">{senderName}</span>
                     )}
 
-                    <div className={`relative group/msg ${isMyMessage ? "flex-row-reverse" : "flex-row"} flex items-center gap-2`}>
+                    <div
+                      className={`relative group/msg ${isMyMessage ? "flex-row-reverse" : "flex-row"} flex items-center gap-2`}
+                      onTouchStart={() => handleTouchStart(msg._id)}
+                      onTouchEnd={handleTouchEnd}
+                    >
                       {/* Message Bubble / Content */}
                       {msg.image && (
                         <div className="flex flex-col">
@@ -721,11 +743,11 @@ export const ChatContainer = () => {
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
                           </button>
                           {/* Hover Reaction Bar */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 rounded-full shadow-xl border border-gray-700 p-2 flex items-center gap-2 hidden group-hover/reaction:flex animate-in fade-in slide-in-from-bottom-2 z-20">
+                          <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 rounded-full shadow-xl border border-gray-700 p-2 items-center gap-2 animate-in fade-in slide-in-from-bottom-2 z-20 ${activeReactionId === msg._id ? "flex" : "hidden group-hover/reaction:flex"}`}>
                             {["👍", "❤️", "😂", "😮", "😢", "🙏"].map(emoji => (
                               <button
                                 key={emoji}
-                                onClick={(e) => { e.stopPropagation(); handleReaction(msg._id, emoji); }}
+                                onClick={(e) => { e.stopPropagation(); handleReaction(msg._id, emoji); setActiveReactionId(null); }}
                                 className="hover:scale-125 transition-transform text-xl p-0.5"
                               >
                                 {emoji}
@@ -1089,83 +1111,68 @@ export const ChatContainer = () => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <div className="flex-1 flex items-center bg-gray-100/12 px-3 rounded-full">
+          <div className="flex items-center gap-2 md:gap-3 w-full">
+            <div className="flex-1 flex items-center bg-gray-100/10 px-3 md:px-4 py-1 rounded-[24px] border border-white/5 focus-within:border-violet-500/30 focus-within:bg-gray-100/15 transition-all w-full relative">
               <input
                 onChange={handleInputChange}
                 value={input}
                 onKeyDown={(e) => (e.key === "Enter" ? handleSendMessage(e) : null)}
                 type="text"
-                placeholder={imagePreview ? "Add a caption..." : "Send a message"}
-                className="flex-1 text-sm p-3 border-none rounded-lg outline-none text-white placeholder-gray-400 bg-transparent"
+                placeholder={imagePreview ? "Add a caption..." : "Message..."}
+                className="flex-1 text-[15px] md:text-base py-2.5 md:py-3 bg-transparent outline-none text-white placeholder-gray-400 min-w-0"
                 disabled={isUploading}
               />
-              <input
-                onChange={handleImageSelect}
-                type="file"
-                id="image"
-                accept=".jpg, .jpeg, .png"
-                hidden
-                disabled={isUploading}
-              />
-              <label htmlFor="image" className={`cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : 'hover:opacity-80'}`}>
-                <img src={assets.gallery_icon} alt="" className="w-5 mr-2" />
-              </label>
 
-              <button
-                onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); }}
-                className="text-gray-400 hover:text-yellow-400 transition-colors p-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
-              </button>
+              <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
+                <input
+                  onChange={handleImageSelect}
+                  type="file"
+                  id="image"
+                  accept=".jpg, .jpeg, .png"
+                  hidden
+                  disabled={isUploading}
+                />
+                <label htmlFor="image" className={`cursor-pointer text-gray-400 hover:text-violet-400 p-2 rounded-full hover:bg-white/5 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`} title="Attach Image">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+                </label>
 
-              {/* Sticker Button */}
-              {/* <button
-                onClick={() => { setShowStickerPicker(!showStickerPicker); setShowEmojiPicker(false); }}
-                className="text-gray-400 hover:text-pink-400 transition-colors p-2 font-bold text-xs border border-gray-600 rounded-md h-8 w-8 flex items-center justify-center"
-                title="GIF/Stickers"
-              >
-                GIF
-              </button> */}
+                <button
+                  onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); }}
+                  className={`text-gray-400 hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-white/5 ${showEmojiPicker ? 'text-yellow-400' : ''}`}
+                  title="Emoji"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
+                </button>
+              </div>
 
+              {/* Responsive Emoji Picker */}
               {showEmojiPicker && (
-                <div className="absolute bottom-16 left-4 z-50 shadow-2xl rounded-xl overflow-hidden border border-gray-700">
+                <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-[95vw] max-w-[350px] z-[100] shadow-2xl rounded-2xl overflow-hidden border border-gray-700 animate-in fade-in slide-in-from-bottom-5 md:absolute md:bottom-14 md:left-0 md:translate-x-0 md:w-[350px]">
+                  <div className="bg-gray-900 border-b border-gray-700 p-2 flex justify-end md:hidden">
+                    <button onClick={() => setShowEmojiPicker(false)} className="text-gray-400 hover:text-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
+                    </button>
+                  </div>
                   <EmojiPicker
                     theme="dark"
                     onEmojiClick={(emojiData) => {
                       setInput((prev) => prev + emojiData.emoji);
                     }}
+                    width="100%"
+                    height={350} // Fixed height for consistency
+                    lazyLoadEmojis={true}
+                    searchDisabled={false}
                   />
                 </div>
               )}
-
-              {showStickerPicker && (
-                <div className="absolute bottom-16 left-4 z-50 shadow-2xl rounded-xl overflow-hidden border border-gray-700 bg-gray-900 p-2 w-72 h-64 overflow-y-auto">
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmM2Z2UxbWRwaHM3NnZkcW54bzY5Zmx4ZnZ4eGh4ZnZ4eGh4ZnZ4eC9naXBoeS5naWY/giphy.gif", // Hello/Waving
-                      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDk1Z2UxbWRwaHM3NnZkcW54bzY5Zmx4ZnZ4eGh4ZnZ4eGh4ZnZ4eC9naXBoeS5naWY/giphy.gif", // Laughing (placeholder URL, replaced with generic trending if invalid)
-                      "https://media.giphy.com/media/26brv0ThflsY2vj6o/giphy.gif", // Cool Cat
-                      "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", // Laughing
-                      "https://media.giphy.com/media/l0HlPtbGpcnqa0fja/giphy.gif", // Wow
-                      "https://media.giphy.com/media/3o7TKs6l7q7d2dF1cI/giphy.gif" // Love
-                    ].map((url, i) => (
-                      <img
-                        key={i}
-                        src={url}
-                        alt="Sticker"
-                        onClick={() => {
-                          sendMessage({ image: url }); // Send as image
-                          setShowStickerPicker(false);
-                        }}
-                        className="w-full h-auto rounded-lg cursor-pointer hover:opacity-80 border border-gray-800"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
             </div>
+
+            {showStickerPicker && (
+              <div className="absolute bottom-16 left-4 z-50 shadow-2xl rounded-xl overflow-hidden border border-gray-700 bg-gray-900 p-2 w-72 h-64 overflow-y-auto">
+                {/* Sticker content kept simple for now as user focused on Emoji */}
+              </div>
+            )}
+
 
             {input.trim() || imagePreview ? (
               <button

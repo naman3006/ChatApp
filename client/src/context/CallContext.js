@@ -15,10 +15,57 @@ export const CallProvider = ({ children }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [remoteVideoOff, setRemoteVideoOff] = useState(false);
+    const [callStartTime, setCallStartTime] = useState(null);
 
+    const { axios } = useContext(AuthContext);
     const myVideo = useRef();
     const remoteVideoRef = useRef();
     const peerConnection = useRef();
+
+    // Audio Refs
+    const audioRing = useRef(null);
+    const audioCalling = useRef(null);
+    const audioCallEnd = useRef(null);
+
+    useEffect(() => {
+        // Initialize Audio objects
+        audioRing.current = new Audio('/sounds/ringtone.mp3');
+        audioRing.current.loop = true;
+
+        audioCalling.current = new Audio('/sounds/calling.mp3');
+        audioCalling.current.loop = true;
+
+        audioCallEnd.current = new Audio('/sounds/callEnd.mp3');
+    }, []);
+
+    useEffect(() => {
+        const stopSounds = () => {
+            if (audioRing.current) {
+                audioRing.current.pause();
+                audioRing.current.currentTime = 0;
+            }
+            if (audioCalling.current) {
+                audioCalling.current.pause();
+                audioCalling.current.currentTime = 0;
+            }
+        };
+
+        if (callState === 'incoming') {
+            audioRing.current?.play().catch(e => console.error("Error playing ringtone:", e));
+        } else if (callState === 'outgoing') {
+            audioCalling.current?.play().catch(e => console.error("Error playing calling sound:", e));
+        } else {
+            stopSounds();
+        }
+
+        return () => {
+            // We don't necessarily want to stop on every unmount/re-render if the state is stable, 
+            // but since dependency is [callState], this runs only on transition.
+            // However, we WANT to stop previous sound when transitioning state.
+            // Example: outgoing -> active (stop calling sound).
+            stopSounds();
+        };
+    }, [callState]);
 
     // STUN servers
     const servers = {
@@ -32,15 +79,57 @@ export const CallProvider = ({ children }) => {
         ],
     };
 
-    const leaveCall = useCallback(() => {
+    const formatTime = (ms) => {
+        const seconds = Math.floor((ms / 1000) % 60);
+        const minutes = Math.floor((ms / (1000 * 60)) % 60);
+        const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+
+        const parts = [];
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+        parts.push(`${seconds}s`);
+        return parts.join(' ');
+    };
+
+    const leaveCall = useCallback(async (isEndedByMe = false) => {
+        // Play end sound if we are leaving a non-idle state
+        if (callState !== 'idle' && audioCallEnd.current) {
+            audioCallEnd.current.currentTime = 0;
+            audioCallEnd.current.play().catch(e => console.error("Error playing call end sound:", e));
+        }
+
+        // Calculate duration and send message if active
+        if (callState === "active" && callStartTime && isEndedByMe) {
+            const duration = Date.now() - callStartTime;
+            const durationText = formatTime(duration);
+            const type = callDetails?.isVideo ? "Video" : "Audio";
+            const messageText = `${type} Call ended • ${durationText}`;
+
+            const otherId = callDetails?.callerId || callDetails?.calleeId;
+
+            if (otherId) {
+                try {
+                    await axios.post(`/messages/send/${otherId}`, {
+                        text: messageText
+                    });
+                } catch (error) {
+                    console.error("Failed to send call duration message", error);
+                }
+            }
+        }
+
         setCallState("idle");
+        setCallStartTime(null);
 
         // Notify other user if in outgoing or active state
         if (callState === "outgoing" && callDetails?.calleeId) {
             socket.emit("endCall", { to: callDetails.calleeId });
         } else if (callState === "active") {
             const otherId = callDetails?.callerId || callDetails?.calleeId;
-            if (otherId) socket.emit("endCall", { to: otherId });
+            // Only emit endCall if WE are ending it (to prevent loops if driven by socket)
+            if (isEndedByMe && otherId) {
+                socket.emit("endCall", { to: otherId });
+            }
         } else if (callState === "incoming" && callDetails?.callerId) {
             socket.emit("rejectCall", { to: callDetails.callerId });
         }
@@ -60,7 +149,7 @@ export const CallProvider = ({ children }) => {
         setIsMuted(false);
         setIsVideoOff(false);
         setRemoteVideoOff(false);
-    }, [callState, callDetails, socket, stream]);
+    }, [callState, callDetails, socket, stream, callStartTime, axios]);
 
     useEffect(() => {
         if (!socket) return;
@@ -79,6 +168,7 @@ export const CallProvider = ({ children }) => {
         socket.on("callAccepted", (signal) => {
             console.log("Call accepted");
             setCallState("active");
+            setCallStartTime(Date.now());
             peerConnection.current.setRemoteDescription(new RTCSessionDescription(signal));
         });
 
@@ -198,6 +288,7 @@ export const CallProvider = ({ children }) => {
 
     const answerCall = async () => {
         setCallState("active");
+        setCallStartTime(Date.now());
         setIsVideoOff(!callDetails.isVideo);
 
         let currentStream = null;

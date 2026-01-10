@@ -48,33 +48,29 @@ const VideoCall = () => {
         };
     };
 
-    const handleMouseMove = (e) => {
-        if (isDragging && isPip) {
-            e.preventDefault();
-            const newX = e.clientX - dragStartPos.current.x;
-            const newY = e.clientY - dragStartPos.current.y;
-
-            setPosition({ x: newX, y: newY });
-        }
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
     useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (isDragging && isPip) {
+                e.preventDefault();
+                const newX = e.clientX - dragStartPos.current.x;
+                const newY = e.clientY - dragStartPos.current.y;
+                setPosition({ x: newX, y: newY });
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
-        } else {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
         }
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging]);
+    }, [isDragging, isPip]);
 
 
     const toggleFullScreen = () => {
@@ -201,7 +197,7 @@ const VideoCall = () => {
                     </button>
 
                     <button
-                        onClick={leaveCall}
+                        onClick={() => leaveCall(true)}
                         className={`bg-red-600 hover:bg-red-700 text-white transition-all transform hover:scale-110 shadow-lg rounded-full flex items-center justify-center ${isPip ? 'p-2 w-8 h-8' : 'p-3 md:p-4'
                             }`}
                         title="End Call"

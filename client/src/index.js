@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/authContext.js";
 import { ChatProvider } from "./context/ChatContext.js";
 import { CallProvider } from "./context/CallContext.js";
+import { StatusProvider } from "./context/StatusContext.js";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -14,7 +15,9 @@ root.render(
     <AuthProvider>
       <ChatProvider>
         <CallProvider>
-          <App />
+          <StatusProvider>
+            <App />
+          </StatusProvider>
         </CallProvider>
       </ChatProvider>
     </AuthProvider>

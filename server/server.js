@@ -7,6 +7,7 @@ import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
 import groupRouter from "./routes/groupRoutes.js";
+import statusRouter from "./routes/statusRoutes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 import { app, server } from "./lib/socket.js";
@@ -47,9 +48,7 @@ app.get("/", (req, res) => {
     res.send("<h1>Server is running!</h1><p>Worker Process: " + process.pid + "</p>");
 });
 
-app.use("/api/status", (req, res) => {
-    res.send("Server is live");
-});
+app.use("/api/status", statusRouter);
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 app.use("/api/groups", groupRouter);

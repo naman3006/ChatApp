@@ -6,6 +6,10 @@ import { formatMessageTime } from "../lib/utils";
 import { AuthContext } from "../context/authContext";
 import { ChatContext } from "../context/ChatContext";
 import toast from "react-hot-toast";
+import StatusList from "./StatusList";
+import StatusViewer from "./StatusViewer";
+import CreateStatusModal from "./CreateStatusModal";
+import { StatusContext } from "../context/StatusContext";
 
 export const Sidebar = () => {
     const {
@@ -28,6 +32,10 @@ export const Sidebar = () => {
     const [showGroupModal, setShowGroupModal] = useState(false);
     const [groupName, setGroupName] = useState("");
     const [selectedMembers, setSelectedMembers] = useState([]);
+
+    const [viewerUserId, setViewerUserId] = useState(null);
+    const [isCreatingStatus, setIsCreatingStatus] = useState(false);
+    const { createStatus } = useContext(StatusContext);
 
 
     const [input, setInput] = useState("");
@@ -114,8 +122,16 @@ export const Sidebar = () => {
                 </div>
             </div>
 
+
             {/* Scrollable Content (Groups + Users) */}
             <div className="h-full overflow-y-auto pt-[160px] px-5 pb-5 custom-scrollbar">
+                {/* Status List */}
+                <StatusList
+                    onOpenViewer={setViewerUserId}
+                    onCreateStatus={() => setIsCreatingStatus(true)}
+                />
+                <div className="my-4 border-b border-white/5"></div>
+
                 {/* Group List */}
                 <div className="flex flex-col mb-4">
                     <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Groups</h3>
@@ -219,6 +235,11 @@ export const Sidebar = () => {
                 }
 
             </div>
-        </div >
+            {/* Status Modals */}
+            <>
+                {viewerUserId && <StatusViewer startUserId={viewerUserId} onClose={() => setViewerUserId(null)} />}
+                {isCreatingStatus && <CreateStatusModal onClose={() => setIsCreatingStatus(false)} onCreate={createStatus} />}
+            </>
+        </div>
     );
 };

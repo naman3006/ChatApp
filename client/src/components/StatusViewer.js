@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import { X, Trash2, Music, ChevronLeft, ChevronRight, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { useState, useEffect, useContext, useCallback, useRef } from 'react';
+import { X, Trash2, Music, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { StatusContext } from '../context/StatusContext';
 import { AuthContext } from '../context/authContext';
 

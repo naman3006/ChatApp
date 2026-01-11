@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { CallContext } from '../context/CallContext';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, Maximize, Minimize, Move, Minimize2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, Maximize, Minimize, Move, Minimize2, Disc, Square } from 'lucide-react';
 
 const VideoCall = () => {
     const {
@@ -15,7 +15,10 @@ const VideoCall = () => {
         isMuted,
         isVideoOff,
         toggleScreenShare,
-        isScreenSharing
+        isScreenSharing,
+        isRecording,
+        startRecording,
+        stopRecording
     } = useContext(CallContext);
 
     const [isFullScreen, setIsFullScreen] = useState(false);
@@ -294,6 +297,15 @@ const VideoCall = () => {
                         title={isVideoOff ? "Start Video" : "Stop Video"}
                     >
                         {isVideoOff ? <VideoOff size={isPip ? 12 : 24} /> : <Video size={isPip ? 12 : 24} />}
+                    </button>
+
+                    <button
+                        onClick={isRecording ? stopRecording : startRecording}
+                        className={`transition-all backdrop-blur-md rounded-full text-white flex items-center justify-center ${isPip ? 'p-1.5 w-7 h-7' : 'p-3 md:p-4'
+                            } ${isRecording ? 'bg-red-500/90 hover:bg-red-600 animate-pulse' : 'bg-gray-700/60 hover:bg-gray-600/80'}`}
+                        title={isRecording ? "Stop Recording" : "Start Recording"}
+                    >
+                        {isRecording ? <Square size={isPip ? 12 : 24} /> : <Disc size={isPip ? 12 : 24} />}
                     </button>
 
                     <button

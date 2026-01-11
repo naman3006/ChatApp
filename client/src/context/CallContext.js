@@ -553,6 +553,237 @@ export const CallProvider = ({ children }) => {
         }
     };
 
+    const [isRecording, setIsRecording] = useState(false);
+    const mediaRecorderRef = useRef(null);
+    const recordedChunksRef = useRef([]);
+    const canvasRef = useRef(null);
+    const canvasIntervalRef = useRef(null);
+    const audioContextRef = useRef(null);
+    const audioDestinationRef = useRef(null);
+    const localAudioSourceRef = useRef(null);
+    const remoteAudioSourceRef = useRef(null);
+
+    // Effect to handle dynamic audio stream changes during recording
+    useEffect(() => {
+        if (!isRecording || !audioContextRef.current || !audioDestinationRef.current) return;
+
+        const cleanupLocal = () => {
+            if (localAudioSourceRef.current) {
+                try { localAudioSourceRef.current.disconnect(); } catch (e) { }
+                localAudioSourceRef.current = null;
+            }
+        };
+
+        const cleanupRemote = () => {
+            if (remoteAudioSourceRef.current) {
+                try { remoteAudioSourceRef.current.disconnect(); } catch (e) { }
+                remoteAudioSourceRef.current = null;
+            }
+        };
+
+        // Connect Local
+        cleanupLocal();
+        if (stream && stream.getAudioTracks().length > 0) {
+            try {
+                const source = audioContextRef.current.createMediaStreamSource(stream);
+                source.connect(audioDestinationRef.current);
+                localAudioSourceRef.current = source;
+            } catch (error) {
+                console.error("Error connecting local audio for recording:", error);
+            }
+        }
+
+        // Connect Remote
+        cleanupRemote();
+        if (userVideo && userVideo.getAudioTracks().length > 0) {
+            try {
+                const source = audioContextRef.current.createMediaStreamSource(userVideo);
+                source.connect(audioDestinationRef.current);
+                remoteAudioSourceRef.current = source;
+            } catch (error) {
+                console.error("Error connecting remote audio for recording:", error);
+            }
+        }
+
+        return () => {
+            cleanupLocal();
+            cleanupRemote();
+        };
+
+    }, [isRecording, stream, userVideo]);
+
+    const startRecording = async () => {
+        try {
+            const width = 1280;
+            const height = 720;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvasRef.current = canvas;
+            const ctx = canvas.getContext('2d');
+
+            // Audio Mixing Setup
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioContext = new AudioContext();
+            audioContextRef.current = audioContext;
+            const destination = audioContext.createMediaStreamDestination();
+            audioDestinationRef.current = destination;
+
+            // Video Mixing Loop
+            const draw = () => {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, width, height);
+
+                const localVideo = myVideo.current;
+                const remoteVideo = remoteVideoRef.current;
+
+                // Simple Side-by-Side Layout
+                // Remote (Left or Main), Local (Right or generic) - Let's do 50/50 split
+
+                if (localVideo && localVideo.readyState === 4 && remoteVideo && remoteVideo.readyState === 4) {
+                    // Both videos active - Split screen
+                    // Draw Remote (Left)
+                    const rW = remoteVideo.videoWidth;
+                    const rH = remoteVideo.videoHeight;
+                    const rAspect = rW / rH;
+                    let drawRW = width / 2;
+                    let drawRH = drawRW / rAspect;
+                    if (drawRH > height) {
+                        drawRH = height;
+                        drawRW = drawRH * rAspect;
+                    }
+                    ctx.drawImage(remoteVideo, 0 + (width / 2 - drawRW) / 2, (height - drawRH) / 2, drawRW, drawRH);
+
+                    // Draw Local (Right)
+                    const lW = localVideo.videoWidth;
+                    const lH = localVideo.videoHeight;
+                    const lAspect = lW / lH;
+                    let drawLW = width / 2;
+                    let drawLH = drawLW / lAspect;
+                    if (drawLH > height) {
+                        drawLH = height;
+                        drawLW = drawLH * lAspect;
+                    }
+                    ctx.drawImage(localVideo, width / 2 + (width / 2 - drawLW) / 2, (height - drawLH) / 2, drawLW, drawLH);
+
+                } else if (remoteVideo && remoteVideo.readyState === 4) {
+                    // Only Remote
+                    const rW = remoteVideo.videoWidth;
+                    const rH = remoteVideo.videoHeight;
+                    const rAspect = rW / rH;
+                    let drawW = width;
+                    let drawH = drawW / rAspect;
+                    if (drawH > height) {
+                        drawH = height;
+                        drawW = drawH * rAspect;
+                    }
+                    ctx.drawImage(remoteVideo, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH);
+                } else if (localVideo && localVideo.readyState === 4) {
+                    // Only Local
+                    const lW = localVideo.videoWidth;
+                    const lH = localVideo.videoHeight;
+                    const lAspect = lW / lH;
+                    let drawW = width;
+                    let drawH = drawW / lAspect;
+                    if (drawH > height) {
+                        drawH = height;
+                        drawW = drawH * lAspect;
+                    }
+                    ctx.drawImage(localVideo, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH);
+                } else {
+                    // Audio only visualization or placeholder
+                    ctx.fillStyle = '#333';
+                    ctx.font = '30px Arial';
+                    ctx.fillStyle = 'white';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Audio Call Recording', width / 2, height / 2);
+
+                    // Helper: pulsating dot
+                    const time = Date.now() / 1000;
+                    if (Math.sin(time * 3) > 0) {
+                        ctx.beginPath();
+                        ctx.arc(width / 2, height / 2 + 50, 10, 0, 2 * Math.PI);
+                        ctx.fillStyle = 'red';
+                        ctx.fill();
+                    }
+                }
+            };
+
+            canvasIntervalRef.current = setInterval(draw, 1000 / 30); // 30 FPS
+
+            const canvasStream = canvas.captureStream(30);
+
+            // Combine Audio and Video
+            const combinedTracks = [
+                ...canvasStream.getVideoTracks(),
+                ...destination.stream.getAudioTracks()
+            ];
+
+            const combinedStream = new MediaStream(combinedTracks);
+
+            const recorder = new MediaRecorder(combinedStream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
+
+            mediaRecorderRef.current = recorder;
+            recordedChunksRef.current = [];
+
+            recorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunksRef.current.push(event.data);
+                }
+            };
+
+            recorder.onstop = () => {
+                const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `call-recording-${new Date().toISOString()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+
+                // Cleanup
+                if (canvasIntervalRef.current) clearInterval(canvasIntervalRef.current);
+                if (audioContextRef.current) {
+                    audioContextRef.current.close();
+                    audioContextRef.current = null;
+                }
+                audioDestinationRef.current = null;
+                localAudioSourceRef.current = null;
+                remoteAudioSourceRef.current = null;
+            };
+
+            recorder.start();
+            setIsRecording(true);
+            toast.success("Recording started");
+
+        } catch (error) {
+            console.error("Failed to start recording:", error);
+            toast.error("Could not start recording");
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            toast.success("Recording saved to computer");
+        }
+    };
+
+    // Auto-stop recording if call ends
+    useEffect(() => {
+        if (callState === 'idle' && isRecording) {
+            stopRecording();
+        }
+    }, [callState, isRecording]);
+
     return (
         <CallContext.Provider value={{
             callState,
@@ -570,7 +801,10 @@ export const CallProvider = ({ children }) => {
             isVideoOff,
             remoteVideoOff,
             isScreenSharing,
-            toggleScreenShare
+            toggleScreenShare,
+            isRecording,
+            startRecording,
+            stopRecording
         }}>
             {children}
         </CallContext.Provider>

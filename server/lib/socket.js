@@ -21,6 +21,14 @@ const io = new Server(server, {
 
 export const userSocketMap = {}; //{userId: [socketId1, socketId2, ...]}
 
+export const getReceiverSocketId = (userId) => {
+    if (userSocketMap[userId] && userSocketMap[userId].length > 0) {
+        // Return the first socket id
+        return userSocketMap[userId][0];
+    }
+    return null;
+}
+
 io.on("connection", async (socket) => {
     const userId = socket.handshake.query.userId;
     const isGhostMode = socket.handshake.query.isGhostMode === "true";

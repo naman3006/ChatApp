@@ -3,7 +3,8 @@ import { AuthContext } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import assets from '../chat-assets/assets';
-import { ChevronLeft, Save, Shield, Clock, Eye, CheckCircle, Ghost } from "lucide-react";
+import { ChevronLeft, Save, Shield, Clock, CheckCircle, Ghost, Terminal } from "lucide-react";
+import DeveloperSettings from '../components/DeveloperSettings';
 
 const SettingsPage = () => {
     const { authUser, updateProfile } = useContext(AuthContext);
@@ -176,6 +177,11 @@ const SettingsPage = () => {
                             </div>
                         </div>
 
+                    </div>
+
+                    {/* Developer Section */}
+                    <div className="space-y-4 pt-4 border-t border-white/5">
+                        <DeveloperSettings />
                     </div>
 
                 </div>

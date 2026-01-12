@@ -16,6 +16,11 @@ const groupSchema = new mongoose.Schema(
                 ref: "User",
             },
         ],
+        theme: {
+            type: { type: String, enum: ['solid', 'gradient', 'image'], default: 'solid' },
+            value: { type: String, default: '' }, // CSS Color or Image URL
+            id: { type: String, default: 'default' } // 'default', 'custom', or preset ID
+        },
     },
     { timestamps: true }
 );

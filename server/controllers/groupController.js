@@ -408,3 +408,32 @@ export const leaveGroup = async (req, res) => {
         res.status(500).json({ success: false, message: "Failed to leave group" });
     }
 };
+
+export const updateGroupTheme = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { theme } = req.body; // { type, value, id }
+        const userId = req.user._id;
+
+        const group = await Group.findById(id);
+        if (!group) return res.status(404).json({ success: false, message: "Group not found" });
+
+        if (!group.admins.includes(userId)) {
+            return res.status(403).json({ success: false, message: "Only admin can update group theme" });
+        }
+
+        group.theme = theme;
+        await group.save();
+
+        const populatedGroup = await Group.findById(id)
+            .populate("members", "-password")
+            .populate("admins", "-password");
+
+        io.to(`group_${id}`).emit("groupThemeUpdated", { groupId: id, theme });
+
+        res.json({ success: true, group: populatedGroup });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Failed to update group theme" });
+    }
+};

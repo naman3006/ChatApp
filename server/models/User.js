@@ -13,6 +13,14 @@ const userSchema = new mongoose.Schema({
         undoWindow: { type: Number, default: 5 }, // Minutes
     },
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    chatThemes: {
+        type: Map,
+        of: new mongoose.Schema({
+            type: { type: String, enum: ['solid', 'gradient', 'image'], default: 'solid' },
+            value: { type: String, default: '' },
+            id: { type: String, default: 'default' }
+        }, { _id: false })
+    },
     lastSeen: { type: Date, default: Date.now },
 }, { timestamps: true })
 

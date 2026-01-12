@@ -1,6 +1,6 @@
 import express from "express";
 import { protectRoute } from "../middleware/auth.js";
-import { createGroup, getGroups, updateGroup, addMember, removeMember, toggleAdmin, deleteGroup, leaveGroup } from "../controllers/groupController.js";
+import { createGroup, getGroups, updateGroup, addMember, removeMember, toggleAdmin, deleteGroup, leaveGroup, updateGroupTheme } from "../controllers/groupController.js";
 
 const router = express.Router();
 
@@ -12,5 +12,6 @@ router.put("/remove-member", protectRoute, removeMember);
 router.put("/toggle-admin", protectRoute, toggleAdmin);
 router.put("/leave", protectRoute, leaveGroup);
 router.delete("/delete/:id", protectRoute, deleteGroup);
+router.put("/:id/theme", protectRoute, updateGroupTheme);
 
 export default router;

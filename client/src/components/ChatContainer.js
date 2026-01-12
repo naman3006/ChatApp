@@ -9,8 +9,9 @@ import VoiceMessage from "./VoiceMessage";
 import toast from "react-hot-toast";
 import EmojiPicker from 'emoji-picker-react';
 import { CallContext } from "../context/CallContext";
-import { Phone, Video } from "lucide-react";
+import { Phone, Video, Palette } from "lucide-react";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
+import ThemeSelector from "./ThemeSelector";
 
 export const ChatContainer = () => {
   const navigate = useNavigate();
@@ -39,7 +40,9 @@ export const ChatContainer = () => {
     typingData,
     sendTyping,
     sendStopTyping,
-    isMessagesLoading
+    isMessagesLoading,
+    updateGroupTheme,
+    updateUserTheme
   } = useContext(ChatContext);
   const { startCall } = useContext(CallContext);
   const { authUser, onlineUsers } = useContext(AuthContext);
@@ -59,6 +62,7 @@ export const ChatContainer = () => {
   const touchTimer = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
 
   const typingTimeoutRef = useRef(null);
 
@@ -371,6 +375,39 @@ export const ChatContainer = () => {
     }
   };
 
+  const handleThemeSelect = (theme) => {
+    if (selectedGroup) {
+      updateGroupTheme(selectedGroup._id, theme);
+    } else if (selectedUser) {
+      updateUserTheme(selectedUser._id, theme);
+    }
+  };
+
+  const currentTheme = (() => {
+    if (selectedGroup) {
+      return selectedGroup.theme;
+    } else if (selectedUser && authUser.chatThemes) {
+      // AuthUser chatThemes is a Map, but serialized from JSON it might be an object if not carefully revived. 
+      // Mongoose Map becomes Object in JSON usually.
+      // Let's check safely. 
+      if (typeof authUser.chatThemes.get === 'function') {
+        return authUser.chatThemes.get(selectedUser._id);
+      } else {
+        return authUser.chatThemes[selectedUser._id];
+      }
+    }
+    return null;
+  })();
+
+  const getBackgroundStyle = () => {
+    if (!currentTheme) return {};
+    if (currentTheme.type === 'solid') return { backgroundColor: currentTheme.value };
+    if (currentTheme.type === 'gradient') return { backgroundImage: currentTheme.value };
+    if (currentTheme.type === 'image') return { backgroundImage: `url(${currentTheme.value})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+    return {};
+  };
+
+
   useEffect(() => {
     if (selectedUser) {
       getMessages(selectedUser._id);
@@ -393,7 +430,11 @@ export const ChatContainer = () => {
   }, [messages, selectedUser, selectedGroup]);
 
   return (selectedUser || selectedGroup) ? (
-    <div className="h-full w-full overflow-hidden relative flex flex-col backdrop-blur-lg" onClick={() => { setActiveMenuId(null); setActiveReactionId(null); }}>
+    <div
+      className="h-full w-full overflow-hidden relative flex flex-col backdrop-blur-lg transition-all duration-500"
+      style={getBackgroundStyle()}
+      onClick={() => { setActiveMenuId(null); setActiveReactionId(null); }}
+    >
       <div className="flex items-center gap-3 py-3 px-4 border-b border-stone-500 bg-gray-900/50 backdrop-blur-md">
 
         {/* Mobile Back Button */}
@@ -497,7 +538,25 @@ export const ChatContainer = () => {
             >
               <Video size={20} />
             </button>
+            <button
+              onClick={() => setShowThemeSelector(true)}
+              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-2"
+              title="Change Theme"
+            >
+              <Palette size={20} />
+            </button>
           </>
+        )}
+
+        {/* Group Theme Button - Only Admin? Or view only? Let's allow view, but only admin edit in selector */}
+        {selectedGroup && selectedGroup.admins.some(adm => adm._id === authUser._id) && (
+          <button
+            onClick={() => setShowThemeSelector(true)}
+            className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-2"
+            title="Change Group Theme"
+          >
+            <Palette size={20} />
+          </button>
         )}
 
         <button
@@ -1222,7 +1281,15 @@ export const ChatContainer = () => {
           </div>
         )}
       </div>
-    </div >
+
+      {showThemeSelector && (
+        <ThemeSelector
+          onClose={() => setShowThemeSelector(false)}
+          onSelect={handleThemeSelect}
+          currentTheme={currentTheme}
+        />
+      )}
+    </div>
   ) : (
     <div className="hidden md:flex flex-col flex-1 items-center justify-center p-4 text-center">
       <div className="bg-gray-900/50 p-6 rounded-3xl flex flex-col items-center max-w-md text-center border border-gray-800 shadow-2xl backdrop-blur-sm">

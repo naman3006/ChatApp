@@ -276,6 +276,18 @@ export const ChatProvider = ({ children }) => {
       }
     });
 
+    socket.on("groupThemeUpdated", ({ groupId, theme }) => {
+      setGroups((prev) => prev.map(g => {
+        if (g._id === groupId) {
+          return { ...g, theme };
+        }
+        return g;
+      }));
+      if (selectedGroup && selectedGroup._id === groupId) {
+        setSelectedGroup((prev) => ({ ...prev, theme }));
+      }
+    });
+
     socket.on("typing", ({ from, isGroup, groupId }) => {
       const chatId = isGroup ? groupId : from;
       setTypingData((prev) => {
@@ -548,6 +560,40 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const updateGroupTheme = async (groupId, theme) => {
+    try {
+      const { data } = await axios.put(`/groups/${groupId}/theme`, { theme });
+      if (data.success) {
+        setGroups((prev) => prev.map(g => g._id === groupId ? data.group : g));
+        if (selectedGroup?._id === groupId) {
+          setSelectedGroup(data.group);
+        }
+        toast.success("Group theme updated");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update theme");
+      return false;
+    }
+  };
+
+  const updateUserTheme = async (partnerId, theme) => {
+    try {
+      const { data } = await axios.put(`/auth/theme/${partnerId}`, { theme });
+      if (data.success) {
+        // Update local authUser state via checkAuth to refresh map? 
+        // Or simpler: update local context if we had one for user themes. 
+        // Currently 'authUser' is in AuthContext. We might need to refresh it.
+        checkAuth();
+        toast.success("Theme updated");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update theme");
+      return false;
+    }
+  };
+
   useEffect(() => {
     subscribeMessages();
     return () => unsubscribeFromMessages();
@@ -585,6 +631,8 @@ export const ChatProvider = ({ children }) => {
     blockUser,
     unblockUser,
     reportUser,
+    updateGroupTheme,
+    updateUserTheme,
     typingData,
     sendTyping,
     sendStopTyping,

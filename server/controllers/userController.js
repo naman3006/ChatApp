@@ -166,3 +166,25 @@ export const reportUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const updateUserTheme = async (req, res) => {
+  try {
+    const { id: partnerId } = req.params;
+    const { theme } = req.body; // { type, value, id }
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+
+    if (!user.chatThemes) {
+      user.chatThemes = new Map();
+    }
+
+    user.chatThemes.set(partnerId, theme);
+    await user.save();
+
+    res.json({ success: true, message: "Theme updated", theme });
+  } catch (error) {
+    console.log("Error in updateUserTheme:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

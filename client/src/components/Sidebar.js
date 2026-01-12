@@ -11,6 +11,8 @@ import StatusViewer from "./StatusViewer";
 import CreateStatusModal from "./CreateStatusModal";
 import { StatusContext } from "../context/StatusContext";
 
+import SidebarSkeleton from "./skeletons/SidebarSkeleton";
+
 export const Sidebar = () => {
     const {
         getUsers,
@@ -24,8 +26,12 @@ export const Sidebar = () => {
         setSelectedGroup,
         selectedGroup,
         createGroup,
-        typingData
+        typingData,
+        isUsersLoading
     } = useContext(ChatContext);
+
+    // ... (keep middle unchanged if possible using context, but replace needs context)
+    // Actually I will just target the start of the function to add isUsersLoading
 
     const { logout, onlineUsers, authUser } = useContext(AuthContext);
 
@@ -52,6 +58,8 @@ export const Sidebar = () => {
         getUsers();
         getGroups();
     }, [onlineUsers]);
+
+    // ...
 
     const handleCreateGroup = async () => {
         if (!groupName || selectedMembers.length === 0) return toast.error("Name and members required");
@@ -125,80 +133,84 @@ export const Sidebar = () => {
 
             {/* Scrollable Content (Groups + Users) */}
             <div className="h-full overflow-y-auto pt-[160px] px-5 pb-5 custom-scrollbar">
-                {/* Status List */}
-                <StatusList
-                    onOpenViewer={setViewerUserId}
-                    onCreateStatus={() => setIsCreatingStatus(true)}
-                />
-                <div className="my-4 border-b border-white/5"></div>
+                {isUsersLoading ? <SidebarSkeleton /> : (
+                    <>
+                        {/* Status List */}
+                        <StatusList
+                            onOpenViewer={setViewerUserId}
+                            onCreateStatus={() => setIsCreatingStatus(true)}
+                        />
+                        <div className="my-4 border-b border-white/5"></div>
 
-                {/* Group List */}
-                <div className="flex flex-col mb-4">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Groups</h3>
-                    {groups.map((group) => (
-                        <div
-                            key={group._id}
-                            onClick={() => setSelectedGroup(group)}
-                            className={`flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm hover:bg-white/5 transition-colors ${selectedGroup?._id === group._id ? "bg-[#282142]/80" : ""}`}
-                        >
-                            <div className="w-[35px] h-[35px] min-w-[35px] rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
-                                {group.name[0].toUpperCase()}
-                            </div>
-                            <div className="flex flex-col truncate w-full">
-                                <p className="truncate text-sm font-medium">{group.name}</p>
-                                {typingData && typingData[group._id] && typingData[group._id].size > 0 ? (
-                                    <p className="text-[10px] text-green-400 animate-pulse font-medium truncate">
-                                        {users.find(u => u._id === Array.from(typingData[group._id])[0])?.fullName.split(' ')[0] || "Someone"} is typing...
-                                    </p>
-                                ) : null}
-                            </div>
+                        {/* Group List */}
+                        <div className="flex flex-col mb-4">
+                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Groups</h3>
+                            {groups.map((group) => (
+                                <div
+                                    key={group._id}
+                                    onClick={() => setSelectedGroup(group)}
+                                    className={`flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm hover:bg-white/5 transition-colors ${selectedGroup?._id === group._id ? "bg-[#282142]/80" : ""}`}
+                                >
+                                    <div className="w-[35px] h-[35px] min-w-[35px] rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
+                                        {group.name[0].toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col truncate w-full">
+                                        <p className="truncate text-sm font-medium">{group.name}</p>
+                                        {typingData && typingData[group._id] && typingData[group._id].size > 0 ? (
+                                            <p className="text-[10px] text-green-400 animate-pulse font-medium truncate">
+                                                {users.find(u => u._id === Array.from(typingData[group._id])[0])?.fullName.split(' ')[0] || "Someone"} is typing...
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
 
-                <div className="flex flex-col">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Direct Messages</h3>
-                    {filteredUsers.map((user, idx) => (
-                        <div
-                            onClick={() => {
-                                setSelectedUser(user);
-                                setUnseenMessages((prev) => {
-                                    const newUnseen = { ...prev };
-                                    delete newUnseen[user._id];
-                                    return newUnseen;
-                                });
-                            }}
-                            key={idx}
-                            className={`relative flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id && "bg-[#282142]/50"
-                                }`}
-                        >
-                            <img
-                                src={user?.profilePic || assets.avatar_icon}
-                                alt=""
-                                className="w-[35px] aspect-[1/1] rounded-full"
-                            />
-                            <div className="flex flex-col leading-5">
-                                <p className="text-sm font-medium">{user.fullName}</p>
-                                {typingData && typingData[user._id] && typingData[user._id].size > 0 ? (
-                                    <span className="text-green-400 text-xs animate-pulse font-medium">Typing...</span>
-                                ) : (
-                                    onlineUsers.includes(user._id) ? (
-                                        <span className="text-green-400 text-xs">Online</span>
-                                    ) : (
-                                        <span className="text-neutral-400 text-xs">
-                                            {user.updatedAt ? `Last seen: ${formatMessageTime(user.updatedAt)}` : "Offline"}
-                                        </span>
-                                    )
-                                )}
-                            </div>
-                            {unseenMessages && unseenMessages[user._id] > 0 && (
-                                <p className="absolute top-4 right-4 text-xs h-5 w-5 flex justify-center items-center rounded-full bg-violet-500/50">
-                                    {unseenMessages[user._id]}
-                                </p>
-                            )}
+                        <div className="flex flex-col">
+                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Direct Messages</h3>
+                            {filteredUsers.map((user, idx) => (
+                                <div
+                                    onClick={() => {
+                                        setSelectedUser(user);
+                                        setUnseenMessages((prev) => {
+                                            const newUnseen = { ...prev };
+                                            delete newUnseen[user._id];
+                                            return newUnseen;
+                                        });
+                                    }}
+                                    key={idx}
+                                    className={`relative flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id && "bg-[#282142]/50"
+                                        }`}
+                                >
+                                    <img
+                                        src={user?.profilePic || assets.avatar_icon}
+                                        alt=""
+                                        className="w-[35px] aspect-[1/1] rounded-full"
+                                    />
+                                    <div className="flex flex-col leading-5">
+                                        <p className="text-sm font-medium">{user.fullName}</p>
+                                        {typingData && typingData[user._id] && typingData[user._id].size > 0 ? (
+                                            <span className="text-green-400 text-xs animate-pulse font-medium">Typing...</span>
+                                        ) : (
+                                            onlineUsers.includes(user._id) ? (
+                                                <span className="text-green-400 text-xs">Online</span>
+                                            ) : (
+                                                <span className="text-neutral-400 text-xs">
+                                                    {user.updatedAt ? `Last seen: ${formatMessageTime(user.updatedAt)}` : "Offline"}
+                                                </span>
+                                            )
+                                        )}
+                                    </div>
+                                    {unseenMessages && unseenMessages[user._id] > 0 && (
+                                        <p className="absolute top-4 right-4 text-xs h-5 w-5 flex justify-center items-center rounded-full bg-violet-500/50">
+                                            {unseenMessages[user._id]}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    </>
+                )}
 
                 {/* Create Group Modal */}
                 {

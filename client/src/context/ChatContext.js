@@ -14,9 +14,13 @@ export const ChatProvider = ({ children }) => {
   const [unseenMessages, setUnseenMessages] = useState(null);
   const [typingData, setTypingData] = useState({}); // { [chatId]: Set<userId> }
 
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [isUsersLoading, setIsUsersLoading] = useState(true);
+
   const { socket, axios, authUser, checkAuth } = useContext(AuthContext);
 
   const getUsers = async () => {
+    if (users.length === 0) setIsUsersLoading(true);
     try {
       const { data } = await axios.get("/messages/users");
       if (data.success) {
@@ -25,6 +29,8 @@ export const ChatProvider = ({ children }) => {
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setIsUsersLoading(false);
     }
   };
 
@@ -55,6 +61,7 @@ export const ChatProvider = ({ children }) => {
 
   //fun to get messages for selected user or group
   const getMessages = async (id, isGroup = false) => {
+    setIsMessagesLoading(true);
     try {
       const url = isGroup ? `/messages/${id}?isGroup=true` : `/messages/${id}`;
       const { data } = await axios.get(url);
@@ -63,6 +70,8 @@ export const ChatProvider = ({ children }) => {
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setIsMessagesLoading(false);
     }
   };
 
@@ -578,7 +587,9 @@ export const ChatProvider = ({ children }) => {
     reportUser,
     typingData,
     sendTyping,
-    sendStopTyping
+    sendStopTyping,
+    isUsersLoading,
+    isMessagesLoading
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

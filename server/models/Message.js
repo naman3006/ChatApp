@@ -15,6 +15,10 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Group",
     },
+    pollId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Poll",
+    },
 
     text: { type: String },
     image: { type: String },

@@ -9,9 +9,11 @@ import VoiceMessage from "./VoiceMessage";
 import toast from "react-hot-toast";
 import EmojiPicker from 'emoji-picker-react';
 import { CallContext } from "../context/CallContext";
-import { Phone, Video, Palette } from "lucide-react";
+import { Phone, Video, Palette, BarChart2 } from "lucide-react";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import ThemeSelector from "./ThemeSelector";
+import CreatePollModal from "./CreatePollModal";
+import PollBubble from "./PollBubble";
 
 export const ChatContainer = () => {
   const navigate = useNavigate();
@@ -42,7 +44,8 @@ export const ChatContainer = () => {
     sendStopTyping,
     isMessagesLoading,
     updateGroupTheme,
-    updateUserTheme
+    updateUserTheme,
+    createPoll
   } = useContext(ChatContext);
   const { startCall } = useContext(CallContext);
   const { authUser, onlineUsers } = useContext(AuthContext);
@@ -63,6 +66,7 @@ export const ChatContainer = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [showPollModal, setShowPollModal] = useState(false);
 
   const typingTimeoutRef = useRef(null);
 
@@ -747,7 +751,11 @@ export const ChatContainer = () => {
                             </div>
                           )}
 
-                          {!msg.image && !msg.audio && (
+                          {msg.pollId && (
+                            <PollBubble message={msg} />
+                          )}
+
+                          {!msg.image && !msg.audio && !msg.pollId && (
                             editingMessageId === msg._id ? (
                               <div className="flex flex-col gap-2 min-w-[200px]">
                                 <input
@@ -859,7 +867,7 @@ export const ChatContainer = () => {
                                         {msg.pinned ? "Unpin Message" : "Pin Message"}
                                       </button>
 
-                                      {!msg.image && !msg.audio && !msg.text.match(/^(Audio|Video) Call ended •/) && (
+                                      {!msg.image && !msg.audio && (!msg.text || !msg.text.match(/^(Audio|Video) Call ended •/)) && (
                                         <button onClick={() => startEditing(msg)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-gray-200 hover:bg-gray-800 border-t border-gray-800/50 active:bg-gray-800 flex items-center gap-3 md:gap-2">
                                           <span className="md:hidden p-2 bg-gray-800 rounded-full text-blue-400">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
@@ -1216,6 +1224,16 @@ export const ChatContainer = () => {
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
                 </button>
+
+                {selectedGroup && (
+                  <button
+                    onClick={() => setShowPollModal(true)}
+                    className="text-gray-400 hover:text-violet-400 transition-colors p-2 rounded-full hover:bg-white/5"
+                    title="Create Poll"
+                  >
+                    <BarChart2 size={22} />
+                  </button>
+                )}
               </div>
 
               {/* Responsive Emoji Picker */}
@@ -1287,6 +1305,14 @@ export const ChatContainer = () => {
           onClose={() => setShowThemeSelector(false)}
           onSelect={handleThemeSelect}
           currentTheme={currentTheme}
+        />
+      )}
+
+      {showPollModal && (
+        <CreatePollModal
+          isOpen={showPollModal}
+          onClose={() => setShowPollModal(false)}
+          onCreate={(pollData) => createPoll({ ...pollData, groupId: selectedGroup._id })}
         />
       )}
     </div>

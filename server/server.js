@@ -7,6 +7,7 @@ import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
 import groupRouter from "./routes/groupRoutes.js";
+import pollRouter from "./routes/pollRoutes.js";
 import statusRouter from "./routes/statusRoutes.js";
 import developerRouter from "./routes/developerRoutes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
@@ -53,6 +54,7 @@ app.use("/api/status", statusRouter);
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
 app.use("/api/groups", groupRouter);
+app.use("/api/polls", pollRouter);
 app.use("/api", developerRouter);
 
 // Global Error Handler

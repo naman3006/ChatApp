@@ -288,6 +288,15 @@ export const ChatProvider = ({ children }) => {
       }
     });
 
+    socket.on("pollUpdated", (updatedPoll) => {
+      setMessages((prev) => prev.map(msg => {
+        if (msg.pollId && (msg.pollId._id === updatedPoll._id || msg.pollId === updatedPoll._id)) {
+          return { ...msg, pollId: updatedPoll };
+        }
+        return msg;
+      }));
+    });
+
     socket.on("typing", ({ from, isGroup, groupId }) => {
       const chatId = isGroup ? groupId : from;
       setTypingData((prev) => {
@@ -594,6 +603,33 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const createPoll = async (pollData) => {
+    try {
+      const { data } = await axios.post("/polls/create", pollData);
+      if (data.success) {
+        // Message creation is handled by backend and emitted via socket
+        toast.success("Poll created");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to create poll");
+      return false;
+    }
+  };
+
+  const votePoll = async (pollId, optionIndex) => {
+    try {
+      const { data } = await axios.put(`/polls/${pollId}/vote`, { optionIndex });
+      if (data.success) {
+        // Socket will handle update
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to vote");
+      return false;
+    }
+  };
+
   useEffect(() => {
     subscribeMessages();
     return () => unsubscribeFromMessages();
@@ -633,6 +669,8 @@ export const ChatProvider = ({ children }) => {
     reportUser,
     updateGroupTheme,
     updateUserTheme,
+    createPoll,
+    votePoll,
     typingData,
     sendTyping,
     sendStopTyping,

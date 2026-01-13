@@ -1,12 +1,14 @@
 import React, { useContext, useState } from "react";
 import assets from "../chat-assets/assets";
 import { AuthContext } from "../context/authContext";
+import { Eye, EyeOff } from "lucide-react";
 
 export const LoginPage = () => {
   const [currState, setCurrState] = useState("Sign up");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [bio, setBio] = useState("");
   const [isDataSubmitted, setIsDataSubmitted] = useState(false);
   const { login } = useContext(AuthContext);
@@ -65,14 +67,27 @@ export const LoginPage = () => {
               className="p-2 border text-foreground bg-background border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
-            <input
-              onChange={(e) => setPassword(e.target.value)}
-              value={password}
-              type="password"
-              placeholder="Password"
-              required
-              className="p-2 border text-foreground bg-background border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+            <div className="relative">
+              <input
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                required
+                className="p-2 border text-foreground bg-background border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary w-full pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
           </>
         )}
         {!isDataSubmitted && currState !== "Sign up" && (
@@ -100,11 +115,6 @@ export const LoginPage = () => {
         >
           {currState === "Sign up" ? "Create Account" : "Login Now"}
         </button>
-
-        <div className="flex items-center gap-2 text-sm-center text-gray-500">
-          <input type="checkbox" />
-          <p>Agree to the terms of use & privacy policy.</p>
-        </div>
 
         <div className="flex flex-col gap-2">
           {currState === "Sign up" ? (

@@ -13,6 +13,7 @@ export const ChatProvider = ({ children }) => {
   const [selectedGroup, setSelectedGroup] = useState(null); // New Group State
   const [unseenMessages, setUnseenMessages] = useState(null);
   const [typingData, setTypingData] = useState({}); // { [chatId]: Set<userId> }
+  const [hasMore, setHasMore] = useState(false); // Pagination state
 
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [isUsersLoading, setIsUsersLoading] = useState(true);
@@ -60,13 +61,20 @@ export const ChatProvider = ({ children }) => {
   };
 
   //fun to get messages for selected user or group
-  const getMessages = async (id, isGroup = false) => {
+  const getMessages = async (id, isGroup = false, page = 1, unreadCount = 0) => {
     setIsMessagesLoading(true);
     try {
-      const url = isGroup ? `/messages/${id}?isGroup=true` : `/messages/${id}`;
+      const url = isGroup
+        ? `/messages/${id}?isGroup=true&page=${page}&unreadCount=${unreadCount}`
+        : `/messages/${id}?page=${page}&unreadCount=${unreadCount}`;
       const { data } = await axios.get(url);
       if (data.success) {
-        setMessages(data.messages);
+        if (page === 1) {
+          setMessages(data.messages);
+        } else {
+          setMessages((prev) => [...data.messages, ...prev]);
+        }
+        setHasMore(data.hasMore);
       }
     } catch (error) {
       toast.error(error.message);
@@ -648,6 +656,7 @@ export const ChatProvider = ({ children }) => {
     subscribeMessages,
     unseenMessages,
     setUnseenMessages,
+    hasMore,
     socket,
     getUsers,
     getGroups,

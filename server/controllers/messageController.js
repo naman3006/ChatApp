@@ -107,19 +107,42 @@ export const getMessages = async (req, res) => {
     // We modify the query to check if it matches a group logic if simple user find fails?
     // Actually, explicit is better. Let's look for a query param or handle logic.
     const isGroup = req.query.isGroup === "true";
+    const limitParam = parseInt(req.query.limit) || 50;
+    const unreadCount = parseInt(req.query.unreadCount) || 0;
+    const isFirstPage = (parseInt(req.query.page) || 1) === 1;
+
+    // If it's the first page and we have unread messages, fetch enough to cover them + context
+    const limit = (isFirstPage && unreadCount > 0) ? Math.max(limitParam, unreadCount + 10) : limitParam;
+
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
 
     let messages;
     if (isGroup) {
       messages = await Message.find({ groupId: chatId })
-        .populate("senderId", "fullName profilePic"); // We need sender info for groups
+        .sort({ createdAt: -1 }) // Get newest first
+        .skip(skip)
+        .limit(limit)
+        .populate("senderId", "fullName profilePic");
+
+      // Reverse to chronological order for frontend
+      messages = messages.reverse();
     } else {
       messages = await Message.find({
         $or: [
           { senderId: myId, receiverId: chatId },
           { senderId: chatId, receiverId: myId },
         ],
-      });
+      })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      messages = messages.reverse();
     }
+
+    // Check if there are more messages (approximate check)
+    const hasMore = messages.length === limit;
 
     const user = await User.findById(myId);
     const undoWindow = user?.privacy?.undoWindow ?? 5; // Default 5 mins
@@ -174,7 +197,7 @@ export const getMessages = async (req, res) => {
       });
     }
 
-    res.json({ success: true, messages: visibleMessages });
+    res.json({ success: true, messages: visibleMessages, hasMore: messages.length === limit });
   } catch (err) {
     console.log(err.message);
     res.json({ success: false, message: err.message });

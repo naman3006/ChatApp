@@ -13,7 +13,6 @@ export const LoginPage = () => {
 
   const onSubmitHandler = (event) => {
     event.preventDefault();
-
     if (currState === "Sign up" && !isDataSubmitted) {
       setIsDataSubmitted(true);
       return;
@@ -34,7 +33,7 @@ export const LoginPage = () => {
         onSubmit={onSubmitHandler}
         className="border-2 bg-card/80 text-card-foreground border-border p-6 flex flex-col gap-6 rounded-lg shadow-lg"
       >
-        <h2 className="font-medium text-2xl flex justify-between items-center text-foreground">
+        <h2 className="font-medium text-2xl flex justify-between items-center text-white">
           {currState}
           {isDataSubmitted && (
             <img
@@ -77,12 +76,15 @@ export const LoginPage = () => {
           </>
         )}
         {currState === "Sign up" && isDataSubmitted && (
-          <textarea
-            rows={4}
-            onChange={(e) => setBio(e.target.value)}
-            value={bio}
-            className="p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 text-black focus:ring-indigo-500"
-          ></textarea>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-lg font-medium text-white">Bio</h1>
+            <textarea
+              rows={4}
+              onChange={(e) => setBio(e.target.value)}
+              value={bio}
+              className="p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 text-black focus:ring-indigo-500"
+            ></textarea>
+          </div>
         )}
 
         <button

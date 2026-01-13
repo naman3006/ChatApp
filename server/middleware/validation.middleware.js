@@ -7,7 +7,7 @@ export const validate = (schema) => (req, res, next) => {
     } catch (error) {
         if (error instanceof z.ZodError) {
             // Format Zod errors into a readable string or object
-            const errorMessage = error.errors.map((e) => e.message).join(", ");
+            const errorMessage = error.errors?.map((e) => e.message).join(", ") || error.message;
             return res.status(400).json({ success: false, message: errorMessage });
         }
         next(error);

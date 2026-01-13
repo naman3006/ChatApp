@@ -2,17 +2,24 @@ import nodemailer from "nodemailer";
 
 export const sendResetEmail = async (to, resetUrl) => {
     try {
-        // Generate test SMTP service account from ethereal.email
-        // Only needed if you don't have a real mail account for testing
-        const testAccount = await nodemailer.createTestAccount();
+        let user = process.env.ETHEREAL_EMAIL;
+        let pass = process.env.ETHEREAL_PASSWORD;
+
+        if (!user || !pass) {
+            // Generate test SMTP service account from ethereal.email
+            // Only needed if you don't have a real mail account for testing
+            const testAccount = await nodemailer.createTestAccount();
+            user = testAccount.user;
+            pass = testAccount.pass;
+        }
 
         const transporter = nodemailer.createTransport({
             host: "smtp.ethereal.email",
             port: 587,
             secure: false, // true for 465, false for other ports
             auth: {
-                user: testAccount.user, // generated ethereal user
-                pass: testAccount.pass, // generated ethereal password
+                user: user,
+                pass: pass,
             },
         });
 
@@ -36,7 +43,7 @@ export const sendResetEmail = async (to, resetUrl) => {
 
         return info;
     } catch (error) {
-        console.error("Error sending email:", error);
-        throw error;
+        console.error("Error sending email:", error.message);
+        throw new Error(`Failed to send email: ${error.message}`);
     }
 };

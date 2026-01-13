@@ -203,7 +203,8 @@ export const forgotPassword = async (req, res) => {
 
     // Create a temporary token specifically for password reset
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
-    const resetUrl = `http://localhost:3000/reset-password/${token}`;
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+    const resetUrl = `${clientUrl}/reset-password/${token}`;
 
     const info = await sendResetEmail(email, resetUrl);
     const previewUrl = nodemailer.getTestMessageUrl(info);

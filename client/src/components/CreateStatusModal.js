@@ -106,30 +106,30 @@ const CreateStatusModal = ({ onClose, onCreate }) => {
 
     return (
         <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center md:p-4">
-            <div className="w-full h-full md:h-auto md:max-h-[85vh] md:max-w-md bg-[#1c1c1c] md:rounded-2xl flex flex-col relative border-0 md:border border-gray-800 shadow-2xl">
+            <div className="w-full h-full md:h-auto md:max-h-[85vh] md:max-w-md bg-popover md:rounded-2xl flex flex-col relative border-0 md:border border-border shadow-2xl">
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-gray-800">
-                    <h3 className="text-white font-semibold">Create Status</h3>
+                <div className="flex justify-between items-center p-4 border-b border-border">
+                    <h3 className="text-foreground font-semibold">Create Status</h3>
                     <div className="flex gap-4">
                         {!showMusicSearch && (
-                            <button onClick={() => setShowMusicSearch(true)} className={`text-gray-400 hover:text-white ${selectedMusic ? 'text-violet-500' : ''}`}>
+                            <button onClick={() => setShowMusicSearch(true)} className={`text-muted-foreground hover:text-foreground ${selectedMusic ? 'text-violet-500' : ''}`}>
                                 <Music size={24} />
                             </button>
                         )}
-                        <button onClick={() => { onClose(); audioRef.current.pause(); }} className="text-gray-400 hover:text-white"><X size={24} /></button>
+                        <button onClick={() => { onClose(); audioRef.current.pause(); }} className="text-muted-foreground hover:text-foreground"><X size={24} /></button>
                     </div>
                 </div>
 
                 {/* Main Content Area */}
                 {showMusicSearch ? (
-                    <div className="flex-1 flex flex-col bg-[#0f0f0f] overflow-hidden">
-                        <div className="p-4 border-b border-gray-800 shrink-0">
+                    <div className="flex-1 flex flex-col bg-background overflow-hidden">
+                        <div className="p-4 border-b border-border shrink-0">
                             <form onSubmit={handleSearchMusic} className="flex gap-2">
                                 <input
                                     value={musicQuery}
                                     onChange={(e) => setMusicQuery(e.target.value)}
                                     placeholder="Search songs..."
-                                    className="flex-1 bg-[#2a2a2a] text-white p-2 rounded-lg outline-none text-sm"
+                                    className="flex-1 bg-secondary text-foreground p-2 rounded-lg outline-none text-sm"
                                     autoFocus
                                 />
                                 <button type="submit" className="bg-violet-600 p-2 rounded-lg text-white">
@@ -137,32 +137,32 @@ const CreateStatusModal = ({ onClose, onCreate }) => {
                                 </button>
                             </form>
                         </div>
-                        <div className="px-4 py-2 border-b border-gray-800 bg-[#1c1c1c]">
-                            <h4 className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                        <div className="px-4 py-2 border-b border-border bg-muted/30">
+                            <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                                 {musicQuery ? 'Search Results' : 'Trending Hits'}
                             </h4>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-2">
                             {musicResults.map(track => (
-                                <div key={track.trackId} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg">
+                                <div key={track.trackId} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg">
                                     <img src={track.artworkUrl60} className="w-10 h-10 rounded" alt="" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-white text-sm font-medium truncate">{track.trackName}</p>
-                                        <p className="text-gray-400 text-xs truncate">{track.artistName}</p>
+                                        <p className="text-foreground text-sm font-medium truncate">{track.trackName}</p>
+                                        <p className="text-muted-foreground text-xs truncate">{track.artistName}</p>
                                     </div>
                                     <button onClick={() => togglePreview(track.previewUrl)}>
-                                        {playingPreview === track.previewUrl ? <Pause size={18} className="text-violet-500" /> : <Play size={18} className="text-gray-400" />}
+                                        {playingPreview === track.previewUrl ? <Pause size={18} className="text-violet-500" /> : <Play size={18} className="text-muted-foreground" />}
                                     </button>
-                                    <button onClick={() => handleSelectMusic(track)} className="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-xs text-white">
+                                    <button onClick={() => handleSelectMusic(track)} className="bg-muted hover:bg-muted/80 px-3 py-1 rounded text-xs text-foreground">
                                         Add
                                     </button>
                                 </div>
                             ))}
                         </div>
-                        <button onClick={() => { setShowMusicSearch(false); audioRef.current.pause(); setPlayingPreview(null); }} className="m-4 text-gray-400 hover:text-white text-sm">Cancel</button>
+                        <button onClick={() => { setShowMusicSearch(false); audioRef.current.pause(); setPlayingPreview(null); }} className="m-4 text-muted-foreground hover:text-foreground text-sm">Cancel</button>
                     </div>
                 ) : (
-                    <div className="flex-1 p-4 flex flex-col items-center justify-center bg-[#0f0f0f] relative">
+                    <div className="flex-1 p-4 flex flex-col items-center justify-center bg-background relative">
                         {/* Music Sticker */}
                         {selectedMusic && (
                             <div className="absolute top-4 left-4 z-20 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10">
@@ -172,7 +172,7 @@ const CreateStatusModal = ({ onClose, onCreate }) => {
                                         {selectedMusic.title} • {selectedMusic.artist}
                                     </div>
                                 </div>
-                                <button onClick={() => { setSelectedMusic(null); audioRef.current.pause(); }}><X size={12} className="text-gray-400" /></button>
+                                <button onClick={() => { setSelectedMusic(null); audioRef.current.pause(); }}><X size={12} className="text-gray-300" /></button>
                             </div>
                         )}
 
@@ -190,13 +190,13 @@ const CreateStatusModal = ({ onClose, onCreate }) => {
                         ) : (
                             <div
                                 onClick={() => fileInputRef.current.click()}
-                                className="w-full h-64 border-2 border-dashed border-gray-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-violet-500 hover:bg-gray-800/50 transition-all gap-2"
+                                className="w-full h-64 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-violet-500 hover:bg-muted/30 transition-all gap-2"
                             >
-                                <div className="flex gap-2 text-gray-500">
+                                <div className="flex gap-2 text-muted-foreground">
                                     <Image size={32} />
                                     <Video size={32} />
                                 </div>
-                                <p className="text-gray-400 text-sm">Click to upload photo or video</p>
+                                <p className="text-muted-foreground text-sm">Click to upload photo or video</p>
                             </div>
                         )}
                         <input
@@ -211,12 +211,12 @@ const CreateStatusModal = ({ onClose, onCreate }) => {
 
                 {/* Footer */}
                 {!showMusicSearch && (
-                    <div className="p-4 bg-[#1c1c1c] border-t border-gray-800">
+                    <div className="p-4 bg-popover border-t border-border">
                         <input
                             value={caption}
                             onChange={(e) => setCaption(e.target.value)}
                             placeholder="Add a caption..."
-                            className="w-full bg-[#2a2a2a] text-white p-3 rounded-lg mb-4 outline-none focus:ring-1 focus:ring-violet-500 text-sm"
+                            className="w-full bg-secondary text-foreground p-3 rounded-lg mb-4 outline-none focus:ring-1 focus:ring-violet-500 text-sm"
                         />
                         <button
                             onClick={handleSubmit}

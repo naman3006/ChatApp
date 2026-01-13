@@ -66,18 +66,18 @@ const DeveloperSettings = () => {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gray-800 rounded-lg text-emerald-400">
+                <div className="p-2 bg-secondary/80 rounded-lg text-emerald-400">
                     <Terminal size={24} />
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold text-white">Developer API</h2>
-                    <p className="text-gray-400 text-sm">Manage API keys for external integrations</p>
+                    <h2 className="text-xl font-bold text-foreground">Developer API</h2>
+                    <p className="text-muted-foreground text-sm">Manage API keys for external integrations</p>
                 </div>
             </div>
 
             {/* Create Key Section */}
-            <div className="bg-white/5 border border-white/5 rounded-2xl p-5">
-                <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+            <div className="bg-secondary/30 border border-border rounded-2xl p-5">
+                <h3 className="text-foreground font-medium mb-4 flex items-center gap-2">
                     <Plus size={18} className="text-violet-400" /> Generate New Key
                 </h3>
                 <div className="flex gap-2">
@@ -85,7 +85,7 @@ const DeveloperSettings = () => {
                         value={newKeyName}
                         onChange={(e) => setNewKeyName(e.target.value)}
                         placeholder="Integration Name (e.g. My CRM)"
-                        className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white outline-none focus:border-violet-500 transition-all placeholder:text-gray-600"
+                        className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-foreground outline-none focus:border-violet-500 transition-all placeholder:text-muted-foreground"
                     />
                     <button
                         onClick={handleCreateKey}
@@ -122,27 +122,27 @@ const DeveloperSettings = () => {
 
             {/* Keys List */}
             <div className="space-y-3">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-2 border-l-2 border-emerald-500">Active Keys</h3>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-2 border-l-2 border-emerald-500">Active Keys</h3>
 
                 {isLoading ? (
-                    <div className="text-center py-8 text-gray-500 text-sm">Loading keys...</div>
+                    <div className="text-center py-8 text-muted-foreground text-sm">Loading keys...</div>
                 ) : keys.length === 0 ? (
-                    <div className="text-center py-8 bg-white/5 rounded-2xl border border-white/5 border-dashed">
-                        <Key className="mx-auto text-gray-600 mb-2" size={24} />
-                        <p className="text-gray-400 text-sm">No active API keys found</p>
+                    <div className="text-center py-8 bg-secondary/30 rounded-2xl border border-border border-dashed">
+                        <Key className="mx-auto text-muted-foreground mb-2" size={24} />
+                        <p className="text-muted-foreground text-sm">No active API keys found</p>
                     </div>
                 ) : (
                     <div className="grid gap-3">
                         {keys.map((key) => (
-                            <div key={key._id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex items-center justify-between hover:bg-white/[0.07] transition-all group">
+                            <div key={key._id} className="bg-card/50 border border-border rounded-xl p-4 flex items-center justify-between hover:bg-secondary/50 transition-all group">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-medium text-white">{key.name}</span>
+                                        <span className="font-medium text-foreground">{key.name}</span>
                                         <span className="text-[10px] bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded border border-violet-500/30">
                                             {key.permissions?.[0] || "send_message"}
                                         </span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                         <span>Created: {new Date(key.createdAt).toLocaleDateString()}</span>
                                         {key.lastUsed && (
                                             <span className="text-emerald-400/70 flex items-center gap-1">

@@ -14,6 +14,7 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import ThemeSelector from "./ThemeSelector";
 import CreatePollModal from "./CreatePollModal";
 import PollBubble from "./PollBubble";
+import { ThemeToggle } from "./ThemeToggle";
 
 export const ChatContainer = () => {
   const navigate = useNavigate();
@@ -435,18 +436,18 @@ export const ChatContainer = () => {
 
   return (selectedUser || selectedGroup) ? (
     <div
-      className="h-full w-full overflow-hidden relative flex flex-col backdrop-blur-lg transition-all duration-500"
+      className="h-full w-full overflow-hidden relative flex flex-col backdrop-blur-lg transition-all duration-500 bg-background/50"
       style={getBackgroundStyle()}
       onClick={() => { setActiveMenuId(null); setActiveReactionId(null); }}
     >
-      <div className="flex items-center gap-3 py-3 px-4 border-b border-stone-500 bg-gray-900/50 backdrop-blur-md">
+      <div className="flex items-center gap-3 py-3 px-4 border-b border-border/5 bg-background/50 backdrop-blur-md">
 
         {/* Mobile Back Button */}
         <button
           onClick={() => { setSelectedUser(null); setSelectedGroup(null); }}
-          className="md:hidden text-gray-400 hover:text-white mr-2"
+          className="md:hidden text-muted-foreground hover:text-foreground mr-2 p-1 rounded-full hover:bg-secondary/50 transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         </button>
 
         {selectedGroup ? (
@@ -473,13 +474,13 @@ export const ChatContainer = () => {
             onClick={() => navigate(`/user/${selectedUser._id}`)}
           />
         )}
-        <div className="flex-1 flex flex-col justify-center">
-          <p className={`text-lg text-white flex items-center gap-2 font-medium ${!selectedGroup && "cursor-pointer hover:underline"}`}
+        <div className="flex-1 flex flex-col justify-center ml-1 overflow-hidden">
+          <p className={`text-base md:text-lg text-foreground flex items-center gap-2 font-semibold tracking-tight ${!selectedGroup && "cursor-pointer hover:underline"}`}
             onClick={() => !selectedGroup && navigate(`/user/${selectedUser._id}`)}
           >
             {selectedGroup ? selectedGroup.name : selectedUser.fullName}
             {!selectedGroup && onlineUsers.includes(selectedUser._id) &&
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>}
+              <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>}
           </p>
           {(() => {
             const chatId = selectedGroup ? selectedGroup._id : selectedUser._id;
@@ -491,7 +492,7 @@ export const ChatContainer = () => {
               if (selectedGroup) {
                 if (otherTypers.length === 1) {
                   const typer = users.find(u => u._id === otherTypers[0]);
-                  typingText = `${typer ? typer.fullName : "Someone"} is typing...`;
+                  typingText = `${typer ? typer.fullName.split(' ')[0] : "Someone"} is typing...`;
                 } else {
                   typingText = "Several people are typing...";
                 }
@@ -500,7 +501,7 @@ export const ChatContainer = () => {
               }
 
               return (
-                <p className="text-xs text-green-400 font-medium animate-pulse">
+                <p className="text-[10px] md:text-xs text-green-500 font-medium animate-pulse truncate">
                   {typingText}
                 </p>
               );
@@ -508,21 +509,27 @@ export const ChatContainer = () => {
 
             if (selectedGroup) {
               return (
-                <p className="text-xs text-gray-400 cursor-pointer hover:text-gray-300" onClick={() => setShowGroupInfo(true)}>
+                <p className="text-[10px] md:text-xs text-muted-foreground cursor-pointer hover:text-foreground truncate" onClick={() => setShowGroupInfo(true)}>
                   {selectedGroup.members.length} members
                 </p>
               );
             }
 
             if (!onlineUsers.includes(selectedUser._id) && selectedUser.lastSeen) {
+              // Custom format to match screenshot: "Last seen at 21:02 on 12/01/2026"
+              const date = new Date(selectedUser.lastSeen);
+              const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              const day = date.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' });
               return (
-                <p className="text-xs text-gray-400">
-                  {formatLastSeen(selectedUser.lastSeen)}
+                <p className="text-[10px] text-muted-foreground truncate leading-tight">
+                  Last seen at {time} on {day}
                 </p>
               );
+            } else if (onlineUsers.includes(selectedUser._id)) {
+              return <p className="text-[10px] text-green-500 font-medium">Online</p>;
             }
 
-            return null;
+            return <p className="text-[10px] text-muted-foreground">Offline</p>;
           })()}
         </div>
 
@@ -530,25 +537,28 @@ export const ChatContainer = () => {
           <>
             <button
               onClick={() => startCall(selectedUser._id, selectedUser.fullName, false)}
-              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-1"
+              className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-1"
               title="Audio Call"
             >
               <Phone size={20} />
             </button>
             <button
               onClick={() => startCall(selectedUser._id, selectedUser.fullName, true)}
-              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-2"
+              className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
               title="Video Call"
             >
               <Video size={20} />
             </button>
             <button
               onClick={() => setShowThemeSelector(true)}
-              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-2"
+              className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
               title="Change Theme"
             >
               <Palette size={20} />
             </button>
+            {/* <div className="mr-2">
+              <ThemeToggle />
+            </div> */}
           </>
         )}
 
@@ -556,7 +566,7 @@ export const ChatContainer = () => {
         {selectedGroup && selectedGroup.admins.some(adm => adm._id === authUser._id) && (
           <button
             onClick={() => setShowThemeSelector(true)}
-            className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors mr-2"
+            className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
             title="Change Group Theme"
           >
             <Palette size={20} />
@@ -565,21 +575,21 @@ export const ChatContainer = () => {
 
         <button
           onClick={() => setShowPinnedMessages(!showPinnedMessages)}
-          className={`p-2 rounded-full transition-colors mr-2 ${showPinnedMessages ? 'bg-violet-600 text-white' : 'hover:bg-gray-800 text-gray-400'}`}
+          className={`p-2 rounded-full transition-colors mr-2 ${showPinnedMessages ? 'bg-violet-600 text-white' : 'hover:bg-secondary text-muted-foreground hover:text-foreground'}`}
           title="Pinned Messages"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
         </button>
 
-        <img
+        {/* <img
           onClick={() => { setSelectedUser(null); setSelectedGroup(null); }}
           src={assets.arrow_icon}
           alt=""
           className="md:hidden max-w-7 cursor-pointer hover:scale-110 transition-transform"
-        />
+        /> */}
         {/* Info Icon for Group */}
         {selectedGroup && (
-          <button onClick={() => setShowGroupInfo(true)} className="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">
+          <button onClick={() => setShowGroupInfo(true)} className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-full hover:bg-secondary">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="16" y2="12" /><line x1="12" x2="12.01" y1="8" y2="8" /></svg>
           </button>
         )}
@@ -625,8 +635,10 @@ export const ChatContainer = () => {
               return messages.map((msg, idx) => {
                 if (msg.isSystemMessage) {
                   return (
-                    <div key={idx} className="flex justify-center my-4">
-                      <div className="bg-gray-800/50 text-gray-400 text-xs px-3 py-1 rounded-full border border-gray-700/50">
+                    <div key={idx} className="flex justify-center my-6">
+                      <div className="bg-[#1f2937]/90 backdrop-blur-sm text-gray-300 text-xs font-medium px-4 py-1.5 rounded-full border border-gray-700/50 shadow-sm flex items-center gap-2">
+                        {/* Optional Icon if it's a call */}
+                        {(msg.text.includes("Call")) && <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>}
                         {msg.text}
                       </div>
                     </div>
@@ -733,12 +745,25 @@ export const ChatContainer = () => {
                               </div>
                               {msg.text && (
                                 <p
-                                  className={`p-3 w-full sm:min-w-[120px] text-sm md:text-[15px] rounded-2xl mt-2 break-words shadow-sm leading-relaxed ${!isMyMessage
-                                    ? "rounded-tl-none bg-gray-800 text-gray-100 border border-gray-700"
-                                    : "rounded-tr-none bg-gradient-to-br from-violet-600 to-indigo-600 text-white border border-white/10"
+                                  className={`px-4 py-2.5 w-full sm:min-w-[120px] text-[15px] rounded-3xl mt-1 break-words shadow-sm leading-relaxed ${!isMyMessage
+                                    ? "rounded-tl-none bg-[#1e1e24] text-gray-100 border border-gray-800/50" /* Dark aesthetic for received */
+                                    : "rounded-tr-none bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white border border-white/10" /* Vibrant purple/indigo for sent */
                                     } `}
                                 >
                                   {msg.text}
+                                  {/* Time & Read inside bubble like screenshot */}
+                                  <div className={`flex items-center gap-1 justify-end mt-1 text-[10px] ${!isMyMessage ? "text-gray-400" : "text-white/70"}`}>
+                                    <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                                    {isMyMessage && (
+                                      <span>
+                                        {msg.seen ? (
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
+                                        ) : (
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70"><path d="M20 6 9 17l-5-5" /></svg>
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
                                 </p>
                               )}
 
@@ -770,19 +795,21 @@ export const ChatContainer = () => {
                                 </div>
                               </div>
                             ) : (
-                              <div className={`relative px-4 py-2.5 rounded-2xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all ${!isMyMessage
-                                ? "bg-white/5 backdrop-blur-sm border border-white/10 text-gray-100 rounded-tl-none hover:bg-white/10"
-                                : "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-violet-500/20 rounded-tr-none border border-white/10"}`}>
-                                <p className="break-all whitespace-pre-wrap min-w-[50px]">{msg.text}</p>
-                                {/* Time & Read Status */}
-                                <div className={`flex items-center gap-1.5 justify-end mt-1 ${isMyMessage ? "text-violet-200" : "text-gray-400"}`}>
-                                  <span className="text-[10px] font-medium">{formatMessageTime(msg.createdAt)}</span>
+                              <div className={`relative px-4 py-2 rounded-3xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all max-w-[85vw] md:max-w-md ${!isMyMessage
+                                ? "bg-[#1f2937] text-gray-100 border border-gray-800/50 rounded-tl-none"
+                                : "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white shadow-violet-500/20 rounded-tr-none border border-white/10"}`}>
+                                <p className="break-words whitespace-pre-wrap min-w-[60px]">{msg.text}</p>
+                                {/* Time & Read Status - Integrated */}
+                                <div className={`flex items-center gap-1 justify-end mt-1 select-none ${!isMyMessage ? "text-gray-400" : "text-white/70"}`}>
+                                  <span className="text-[10px] font-medium tracking-wide">
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                  </span>
                                   {isMyMessage && (
                                     <span>
                                       {msg.seen ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5" /><path d="m22 10-7.5 7.5L13 16" /></svg>
                                       ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70"><path d="M20 6 9 17l-5-5" /></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M20 6 9 17l-5-5" /></svg>
                                       )}
                                     </span>
                                   )}
@@ -793,14 +820,14 @@ export const ChatContainer = () => {
 
                           {/* Reactions Display */}
                           {msg.reactions && msg.reactions.length > 0 && (
-                            <div className={`absolute -bottom-3 ${isMyMessage ? "right-0" : "left-0"} flex items-center gap-1 bg-gray-800 rounded-full px-2 py-0.5 shadow-lg border border-gray-700 z-[5]`}>
+                            <div className={`absolute -bottom-3 ${isMyMessage ? "right-0" : "left-0"} flex items-center gap-1 bg-muted rounded-full px-2 py-0.5 shadow-lg border border-border z-[5]`}>
                               {Object.entries(
                                 msg.reactions.reduce((acc, curr) => {
                                   acc[curr.emoji] = (acc[curr.emoji] || 0) + 1;
                                   return acc;
                                 }, {})
                               ).map(([emoji, count]) => (
-                                <span key={emoji} className="text-xs flex items-center gap-0.5 text-gray-300 hover:scale-110 transition-transform cursor-pointer">
+                                <span key={emoji} className="text-xs flex items-center gap-0.5 text-muted-foreground hover:scale-110 transition-transform cursor-pointer">
                                   <span>{emoji}</span>
                                   {count > 1 && <span className="font-bold text-[10px]">{count}</span>}
                                 </span>
@@ -812,12 +839,12 @@ export const ChatContainer = () => {
                           <div className="opacity-0 group-hover/msg:opacity-100 transition-all duration-200 px-2 flex items-center gap-2">
                             {/* Reaction Button */}
                             <div className="relative group/reaction">
-                              <button className="text-gray-500 hover:text-yellow-400 transition-colors p-1.5 rounded-full hover:bg-gray-800">
+                              <button className="text-muted-foreground hover:text-yellow-400 transition-colors p-1.5 rounded-full hover:bg-muted">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
                               </button>
                               {/* Hover Reaction Bar */}
                               <div className={`
-                            bg-gray-900 rounded-full shadow-2xl border border-gray-700 p-2 items-center gap-1 md:gap-2 animate-in fade-in slide-in-from-bottom-2 z-[100] min-w-max backdrop-blur-md
+                            bg-popover rounded-full shadow-xl border border-border p-2 items-center gap-1 md:gap-2 animate-in fade-in slide-in-from-bottom-2 z-[100] min-w-max backdrop-blur-md
                             ${activeReactionId === msg._id
                                   ? "fixed bottom-32 left-1/2 -translate-x-1/2 flex scale-110 origin-center"
                                   : "hidden md:group-hover/reaction:flex md:absolute md:bottom-full md:mb-2 " + (isMyMessage ? "md:right-0 md:origin-bottom-right" : "md:left-0 md:origin-bottom-left")
@@ -840,7 +867,7 @@ export const ChatContainer = () => {
                               <div className="relative">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); toggleMenu(msg._id); }}
-                                  className="text-gray-500 hover:text-white transition-colors p-1.5 rounded-full hover:bg-gray-800"
+                                  className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-full hover:bg-muted"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                                 </button>
@@ -853,22 +880,22 @@ export const ChatContainer = () => {
                                     />
                                     {/* Menu Container - Responsive Styles */}
                                     <div className={`
-                                  z-[101] bg-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden
+                                  z-[101] bg-popover rounded-2xl shadow-xl border border-border overflow-hidden
                                   fixed bottom-4 left-4 right-4 w-auto origin-bottom animate-in slide-in-from-bottom-4 fade-in duration-200
                                   md:absolute md:bottom-full md:right-0 md:w-40 md:mb-2 md:left-auto md:top-auto md:inset-auto md:animate-in md:fade-in md:zoom-in-95 md:origin-bottom-right md:z-50
                                 `}>
                                       <button
                                         onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
-                                        className={`w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-gray-200 hover:bg-gray-800 flex items-center gap-3 md:gap-2 active:bg-gray-800 transition-colors ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
+                                        className={`w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted flex items-center gap-3 md:gap-2 active:bg-muted transition-colors ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
                                       >
-                                        <span className="md:hidden p-2 bg-gray-800 rounded-full text-violet-400">
+                                        <span className="md:hidden p-2 bg-muted rounded-full text-violet-400">
                                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
                                         </span>
                                         {msg.pinned ? "Unpin Message" : "Pin Message"}
                                       </button>
 
                                       {!msg.image && !msg.audio && (!msg.text || !msg.text.match(/^(Audio|Video) Call ended •/)) && (
-                                        <button onClick={() => startEditing(msg)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-gray-200 hover:bg-gray-800 border-t border-gray-800/50 active:bg-gray-800 flex items-center gap-3 md:gap-2">
+                                        <button onClick={() => startEditing(msg)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted border-t border-border active:bg-muted flex items-center gap-3 md:gap-2">
                                           <span className="md:hidden p-2 bg-gray-800 rounded-full text-blue-400">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                           </span>
@@ -876,7 +903,7 @@ export const ChatContainer = () => {
                                         </button>
                                       )}
 
-                                      <button onClick={() => handleDeleteMessage(msg._id)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-red-400 hover:bg-gray-800 border-t border-gray-800/50 active:bg-gray-800 flex items-center gap-3 md:gap-2">
+                                      <button onClick={() => handleDeleteMessage(msg._id)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-red-500 hover:bg-muted border-t border-border active:bg-muted flex items-center gap-3 md:gap-2">
                                         <span className="md:hidden p-2 bg-red-500/10 rounded-full text-red-400">
                                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
                                         </span>
@@ -905,13 +932,13 @@ export const ChatContainer = () => {
       {
         imagePreview && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-            <div className="relative bg-gray-800 p-2 rounded-lg max-w-sm w-full flex flex-col gap-2">
+            <div className="relative bg-card p-2 rounded-lg max-w-sm w-full flex flex-col gap-2">
               <img src={imagePreview} alt="Preview" className="w-full rounded-md max-h-[60vh] object-contain" />
 
               <div className="flex justify-end gap-2 p-1">
                 <button
                   onClick={removeImagePreview}
-                  className="text-gray-400 hover:text-white text-sm px-3 py-1"
+                  className="text-muted-foreground hover:text-foreground text-sm px-3 py-1"
                 >
                   Cancel
                 </button>
@@ -941,10 +968,10 @@ export const ChatContainer = () => {
       {
         showGroupInfo && selectedGroup && (
           <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-gray-900 border border-gray-700 w-full max-w-md rounded-2xl p-5 flex flex-col gap-5 max-h-[85vh] shadow-2xl">
-              <div className="flex justify-between items-center border-b border-gray-800 pb-4">
-                <h2 className="text-xl font-bold text-white tracking-tight">Group Info</h2>
-                <button onClick={() => setShowGroupInfo(false)} className="text-gray-500 hover:text-white transition-colors bg-gray-800/50 p-1.5 rounded-full hover:bg-gray-800">
+            <div className="bg-popover border border-border w-full max-w-md rounded-2xl p-5 flex flex-col gap-5 max-h-[85vh] shadow-2xl">
+              <div className="flex justify-between items-center border-b border-border pb-4">
+                <h2 className="text-xl font-bold text-foreground tracking-tight">Group Info</h2>
+                <button onClick={() => setShowGroupInfo(false)} className="text-muted-foreground hover:text-foreground transition-colors bg-muted p-1.5 rounded-full hover:bg-muted/80">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
                 </button>
               </div>
@@ -999,9 +1026,9 @@ export const ChatContainer = () => {
               </div>
 
               {/* Members List */}
-              <div className="flex-1 overflow-y-auto min-h-0 bg-gray-950/30 rounded-xl p-3 border border-gray-800/50">
+              <div className="flex-1 overflow-y-auto min-h-0 bg-muted/30 rounded-xl p-3 border border-border">
                 <div className="flex justify-between items-center mb-3 px-1">
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Members</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Members</h4>
                   {/* Show Add Button Only if Admin */}
                   {selectedGroup.admins.some(a => a._id === authUser._id) && (
                     <button onClick={() => setShowAddMemberModal(true)} className="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-lg hover:bg-violet-700 font-medium transition-colors flex items-center gap-1.5">
@@ -1017,19 +1044,19 @@ export const ChatContainer = () => {
                     const amIAdmin = selectedGroup.admins.some(a => a._id === authUser._id);
 
                     return (
-                      <div key={member._id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-gray-800/60 transition-colors group/member">
+                      <div key={member._id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted transition-colors group/member">
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <img src={member.profilePic || assets.avatar_icon} className="w-10 h-10 rounded-full object-cover border border-gray-700" alt="" />
+                            <img src={member.profilePic || assets.avatar_icon} className="w-10 h-10 rounded-full object-cover border border-border" alt="" />
                             {isMemberAdmin && (
                               <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-gray-900 shadow-sm">ADMIN</div>
                             )}
                           </div>
                           <div>
-                            <p className="text-white text-sm font-medium">
-                              {member.fullName} {member._id === authUser._id && <span className="text-gray-500 font-normal">(You)</span>}
+                            <p className="text-foreground text-sm font-medium">
+                              {member.fullName} {member._id === authUser._id && <span className="text-muted-foreground font-normal">(You)</span>}
                             </p>
-                            <p className="text-[10px] text-gray-500 truncate max-w-[120px]">{member.email || "User"}</p>
+                            <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{member.email || "User"}</p>
                           </div>
                         </div>
 
@@ -1061,7 +1088,7 @@ export const ChatContainer = () => {
                 </div>
 
                 {/* Leave Group Button */}
-                <div className="mt-4 pt-4 border-t border-gray-700 w-full">
+                <div className="mt-4 pt-4 border-t border-border w-full">
                   <button
                     onClick={async () => {
                       if (window.confirm("Are you sure you want to leave this group?")) {
@@ -1085,10 +1112,10 @@ export const ChatContainer = () => {
       {
         showAddMemberModal && (
           <div className="absolute inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-gray-900 border border-gray-700 w-full max-w-sm rounded-2xl p-5 flex flex-col gap-4 max-h-[60vh] shadow-2xl">
-              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <h2 className="text-lg font-bold text-white">Add Members</h2>
-                <button onClick={() => setShowAddMemberModal(false)} className="text-gray-500 hover:text-white hover:bg-gray-800 p-1 rounded-full transition-all">
+            <div className="bg-popover border border-border w-full max-w-sm rounded-2xl p-5 flex flex-col gap-4 max-h-[60vh] shadow-2xl">
+              <div className="flex justify-between items-center border-b border-border pb-3">
+                <h2 className="text-lg font-bold text-foreground">Add Members</h2>
+                <button onClick={() => setShowAddMemberModal(false)} className="text-muted-foreground hover:text-foreground hover:bg-muted p-1 rounded-full transition-all">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
                 </button>
               </div>
@@ -1096,12 +1123,12 @@ export const ChatContainer = () => {
                 {users
                   .filter(u => !selectedGroup.members.some(m => m._id === u._id) && u._id !== authUser._id)
                   .map(user => (
-                    <div key={user._id} className="flex justify-between items-center p-3 hover:bg-gray-800/80 rounded-xl mb-1 transition-colors group">
+                    <div key={user._id} className="flex justify-between items-center p-3 hover:bg-muted rounded-xl mb-1 transition-colors group">
                       <div className="flex items-center gap-3">
                         <img src={user.profilePic || assets.avatar_icon} className="w-9 h-9 rounded-full object-cover" alt="" />
-                        <span className="text-white text-sm font-medium">{user.fullName}</span>
+                        <span className="text-foreground text-sm font-medium">{user.fullName}</span>
                       </div>
-                      <button onClick={() => handleAddMember(user._id)} className="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg group-hover:bg-violet-600 transition-colors">Add</button>
+                      <button onClick={() => handleAddMember(user._id)} className="text-xs bg-muted border border-border text-foreground px-3 py-1.5 rounded-lg group-hover:bg-violet-600 group-hover:text-white transition-colors">Add</button>
                     </div>
                   ))
                 }
@@ -1121,13 +1148,13 @@ export const ChatContainer = () => {
       {/* Pinned Messages Sidebar */}
       {
         showPinnedMessages && (
-          <div className="absolute inset-y-0 right-0 w-80 bg-gray-900 border-l border-gray-800 z-50 transform transition-transform shadow-2xl flex flex-col backdrop-blur-3xl bg-opacity-95">
-            <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900/50">
-              <h3 className="font-semibold text-white flex items-center gap-2">
+          <div className="absolute inset-y-0 right-0 w-80 bg-background border-l border-border z-50 transform transition-transform shadow-2xl flex flex-col backdrop-blur-3xl bg-opacity-95">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
                 Pinned Messages
               </h3>
-              <button onClick={() => setShowPinnedMessages(false)} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800 transition-colors">
+              <button onClick={() => setShowPinnedMessages(false)} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
               </button>
             </div>
@@ -1139,19 +1166,19 @@ export const ChatContainer = () => {
                 </div>
               ) : (
                 messages.filter(m => m.pinned).map(msg => (
-                  <div key={msg._id} className="bg-gray-800/50 p-3 rounded-xl border border-gray-700/50 hover:border-violet-500/30 transition-colors group relative">
+                  <div key={msg._id} className="bg-muted/50 p-3 rounded-xl border border-border hover:border-violet-500/30 transition-colors group relative">
                     <div className="flex items-center gap-2 mb-1.5">
                       <img src={msg.senderId.profilePic || assets.avatar_icon} className="w-5 h-5 rounded-full object-cover" alt="" />
-                      <span className="text-xs font-semibold text-gray-300">{msg.senderId.fullName}</span>
-                      <span className="text-[10px] text-gray-500 ml-auto">{formatMessageTime(msg.createdAt)}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{msg.senderId.fullName}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto">{formatMessageTime(msg.createdAt)}</span>
                     </div>
-                    {msg.text && <p className="text-sm text-gray-200 line-clamp-3">{msg.text}</p>}
+                    {msg.text && <p className="text-sm text-foreground line-clamp-3">{msg.text}</p>}
                     {msg.image && <div className="text-xs text-blue-400 mt-1 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg> Image Attachment</div>}
                     {msg.audio && <div className="text-xs text-yellow-500 mt-1 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /><line x1="8" x2="16" y1="22" y2="22" /></svg> Voice Message</div>}
 
                     <button
                       onClick={() => unpinMessage(msg._id)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all p-1"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all p-1"
                       title="Unpin"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
@@ -1164,16 +1191,16 @@ export const ChatContainer = () => {
         )
       }
 
-      {/* bottom area  */}
-      <div className="w-full gap-3 p-3 backdrop-blur-md bg-black/20 z-10">
+      {/* bottom area - Floating Mobile Style */}
+      <div className="w-full p-2 md:p-4 z-10 bg-transparent">
 
         {/* Dynamic Input Area */}
         {isBlocked ? (
-          <div className="flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md rounded-lg mx-4 mb-2 border border-red-900/30">
-            <p className="text-gray-400 text-sm">You have blocked this user. <button className="text-red-500 font-medium hover:underline ml-1" onClick={() => unblockUser(selectedUser._id)}>Unblock</button> to send messages.</p>
+          <div className="flex items-center justify-center p-4 bg-muted/80 backdrop-blur-md rounded-lg mx-4 mb-2 border border-border">
+            <p className="text-muted-foreground text-sm">You have blocked this user. <button className="text-red-500 font-medium hover:underline ml-1" onClick={() => unblockUser(selectedUser._id)}>Unblock</button> to send messages.</p>
           </div>
         ) : isRecording ? (
-          <div className="flex items-center justify-between bg-gray-800/80 px-4 py-2 rounded-full border border-red-500/30 w-full animate-pulse-border transition-all">
+          <div className="flex items-center justify-between bg-muted/80 px-4 py-2 rounded-full border border-red-500/30 w-full animate-pulse-border transition-all">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]"></div>
               {/* Recording Visualizer */}
@@ -1185,22 +1212,22 @@ export const ChatContainer = () => {
               <span className="text-white font-mono min-w-[50px]">{formatDuration(recordingDuration)}</span>
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={cancelRecording} className="text-gray-400 hover:text-white text-sm font-medium">Cancel</button>
+              <button onClick={cancelRecording} className="text-muted-foreground hover:text-foreground text-sm font-medium">Cancel</button>
               <button onClick={stopRecording} className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg hover:scale-105 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="2" y1="6" y2="6" /><polyline points="2 6 2 2 22 2 22 6" /><line x1="12" x2="12" y1="22" y2="10" /></svg>
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 md:gap-3 w-full">
-            <div className="flex-1 flex items-center bg-gray-100/10 px-3 md:px-4 py-1 rounded-[24px] border border-white/5 focus-within:border-violet-500/30 focus-within:bg-gray-100/15 transition-all w-full relative">
+          <div className="flex items-center gap-2 w-full">
+            <div className="flex-1 flex items-center bg-secondary/80 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-[24px] border border-border/50 shadow-lg focus-within:border-violet-500/50 focus-within:bg-secondary focus-within:shadow-violet-500/10 transition-all w-full relative">
               <input
                 onChange={handleInputChange}
                 value={input}
                 onKeyDown={(e) => (e.key === "Enter" ? handleSendMessage(e) : null)}
                 type="text"
                 placeholder={imagePreview ? "Add a caption..." : "Message..."}
-                className="flex-1 text-[15px] md:text-base py-2.5 md:py-3 bg-transparent outline-none text-white placeholder-gray-400 min-w-0"
+                className="flex-1 text-[15px] md:text-base py-2.5 md:py-3 bg-transparent outline-none text-foreground placeholder:text-muted-foreground min-w-0"
                 disabled={isUploading}
               />
 
@@ -1213,13 +1240,13 @@ export const ChatContainer = () => {
                   hidden
                   disabled={isUploading}
                 />
-                <label htmlFor="image" className={`cursor-pointer text-gray-400 hover:text-violet-400 p-2 rounded-full hover:bg-white/5 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`} title="Attach Image">
+                <label htmlFor="image" className={`cursor-pointer text-muted-foreground hover:text-violet-400 p-2 rounded-full hover:bg-muted transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`} title="Attach Image">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
                 </label>
 
                 <button
                   onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); }}
-                  className={`text-gray-400 hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-white/5 ${showEmojiPicker ? 'text-yellow-400' : ''}`}
+                  className={`text-muted-foreground hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-muted ${showEmojiPicker ? 'text-yellow-400' : ''}`}
                   title="Emoji"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
@@ -1228,7 +1255,7 @@ export const ChatContainer = () => {
                 {selectedGroup && (
                   <button
                     onClick={() => setShowPollModal(true)}
-                    className="text-gray-400 hover:text-violet-400 transition-colors p-2 rounded-full hover:bg-white/5"
+                    className="text-muted-foreground hover:text-violet-400 transition-colors p-2 rounded-full hover:bg-muted"
                     title="Create Poll"
                   >
                     <BarChart2 size={22} />
@@ -1238,9 +1265,9 @@ export const ChatContainer = () => {
 
               {/* Responsive Emoji Picker */}
               {showEmojiPicker && (
-                <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-[95vw] max-w-[350px] z-[100] shadow-2xl rounded-2xl overflow-hidden border border-gray-700 animate-in fade-in slide-in-from-bottom-5 md:absolute md:bottom-14 md:left-0 md:translate-x-0 md:w-[350px]">
-                  <div className="bg-gray-900 border-b border-gray-700 p-2 flex justify-end md:hidden">
-                    <button onClick={() => setShowEmojiPicker(false)} className="text-gray-400 hover:text-white">
+                <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-[95vw] max-w-[350px] z-[100] shadow-2xl rounded-2xl overflow-hidden border border-border animate-in fade-in slide-in-from-bottom-5 md:absolute md:bottom-14 md:left-0 md:translate-x-0 md:w-[350px]">
+                  <div className="bg-popover border-b border-border p-2 flex justify-end md:hidden">
+                    <button onClick={() => setShowEmojiPicker(false)} className="text-muted-foreground hover:text-foreground">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
                     </button>
                   </div>
@@ -1318,12 +1345,12 @@ export const ChatContainer = () => {
     </div>
   ) : (
     <div className="hidden md:flex flex-col flex-1 items-center justify-center p-4 text-center">
-      <div className="bg-gray-900/50 p-6 rounded-3xl flex flex-col items-center max-w-md text-center border border-gray-800 shadow-2xl backdrop-blur-sm">
-        <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-4 animate-bounce">
+      <div className="bg-card/50 p-6 rounded-3xl flex flex-col items-center max-w-md text-center border border-border shadow-2xl backdrop-blur-sm">
+        <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-4 animate-bounce">
           <img src={assets.logo_icon} className="w-10 h-10 opacity-70" alt="" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Welcome to QuickChat</h2>
-        <p className="text-gray-400 mb-0">Select a chat to start messaging</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to QuickChat</h2>
+        <p className="text-muted-foreground mb-0">Select a chat to start messaging</p>
       </div>
     </div>
   );

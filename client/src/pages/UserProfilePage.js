@@ -59,15 +59,15 @@ export const UserProfilePage = () => {
 
     if (!user) {
         return (
-            <div className="h-screen w-full flex items-center justify-center bg-gray-900 text-white">
+            <div className="h-screen w-full flex items-center justify-center bg-background text-foreground">
                 <p>User not found. <button onClick={() => navigate("/")} className="text-violet-400 underline">Go Back</button></p>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 flex justify-center p-4">
-            <div className="w-full max-w-2xl bg-[#1c1d2e] rounded-2xl border border-white/5 overflow-hidden shadow-2xl relative flex flex-col">
+        <div className="min-h-screen bg-background text-foreground flex justify-center p-4">
+            <div className="w-full max-w-2xl bg-card rounded-2xl border border-border overflow-hidden shadow-2xl relative flex flex-col">
 
                 {/* Back Button */}
                 <div className="absolute top-4 left-4 z-10">
@@ -77,44 +77,44 @@ export const UserProfilePage = () => {
                 </div>
 
                 {/* 1. Top Section: Profile Info */}
-                <div className="flex flex-col items-center pt-12 pb-6 px-6 relative bg-gradient-to-b from-gray-800/20 to-[#1c1d2e]">
+                <div className="flex flex-col items-center pt-12 pb-6 px-6 relative bg-gradient-to-b from-muted/20 to-card">
                     <div className="relative group cursor-default mb-4">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur opacity-50 group-hover:opacity-100 transition duration-500"></div>
                         <img
                             src={user.profilePic || assets.avatar_icon}
                             alt={user.fullName}
-                            className="relative w-32 h-32 rounded-full object-cover border-4 border-[#1c1d2e] shadow-xl"
+                            className="relative w-32 h-32 rounded-full object-cover border-4 border-card shadow-xl"
                         />
                         {onlineUsers.includes(user._id) && (
-                            <span className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-[#1c1d2e] rounded-full shadow-lg"></span>
+                            <span className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-card rounded-full shadow-lg"></span>
                         )}
                     </div>
 
-                    <h2 className="text-2xl font-bold text-white mb-2 text-center">{user.fullName}</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-2 text-center">{user.fullName}</h2>
 
-                    <div className="text-sm font-medium text-gray-400 mb-6 flex items-center gap-2">
+                    <div className="text-sm font-medium text-muted-foreground mb-6 flex items-center gap-2">
                         {onlineUsers.includes(user._id) ? (
-                            <span className="text-green-400 bg-green-400/10 px-3 py-1 rounded-full">Online</span>
+                            <span className="text-green-500 bg-green-500/10 px-3 py-1 rounded-full">Online</span>
                         ) : (
-                            <span className="text-gray-400 bg-gray-700/30 px-3 py-1 rounded-full">{formatLastSeen(user.lastSeen)}</span>
+                            <span className="text-muted-foreground bg-secondary/50 px-3 py-1 rounded-full">{formatLastSeen(user.lastSeen)}</span>
                         )}
                     </div>
 
-                    <p className="text-center text-gray-300 text-base leading-relaxed max-w-md px-4 glass-morphism p-4 rounded-xl border border-white/5 bg-white/5">
+                    <p className="text-center text-muted-foreground text-base leading-relaxed max-w-md px-4 glass-morphism p-4 rounded-xl border border-border bg-muted/30">
                         {user.bio || "No bio available"}
                     </p>
                 </div>
 
-                <hr className="border-white/5 w-11/12 mx-auto" />
+                <hr className="border-border w-11/12 mx-auto" />
 
                 {/* 2. Middle Section: Media Gallery */}
                 <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-200 tracking-wide flex items-center gap-2">
-                            <ImageIcon size={20} className="text-violet-400" />
+                        <h3 className="text-lg font-semibold text-foreground tracking-wide flex items-center gap-2">
+                            <ImageIcon size={20} className="text-violet-500" />
                             Shared Media
                         </h3>
-                        <span className="text-sm text-gray-500 bg-gray-800/50 px-2 py-0.5 rounded-md">{mediaItems.length} files</span>
+                        <span className="text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded-md">{mediaItems.length} files</span>
                     </div>
 
                     {mediaItems.length > 0 ? (
@@ -137,7 +137,7 @@ export const UserProfilePage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-gray-500 space-y-3 bg-white/5 rounded-2xl border border-white/5 border-dashed">
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground space-y-3 bg-secondary/20 rounded-2xl border border-border border-dashed">
                             <ImageIcon size={48} className="opacity-30" />
                             <span className="text-sm font-medium">No shared media yet</span>
                         </div>
@@ -154,13 +154,13 @@ export const UserProfilePage = () => {
                 </div>
 
                 {/* 3. Bottom Section: Actions */}
-                <div className="p-8 bg-[#151625] mt-auto border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-8 bg-muted/30 mt-auto border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                     <button
                         onClick={handleBlockToggle}
                         className={`py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-200 transform active:scale-[0.98] shadow-lg ${isBlocked
-                                ? 'bg-gray-700 text-white hover:bg-gray-600'
-                                : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'
+                            ? 'bg-secondary text-foreground hover:bg-muted'
+                            : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'
                             }`}
                     >
                         <Ban size={18} />
@@ -175,13 +175,13 @@ export const UserProfilePage = () => {
                         Report User
                     </button>
 
-                    <button
+                    {/* <button
                         onClick={logout}
                         className="col-span-1 sm:col-span-2 py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20 transition-all duration-200 transform active:scale-[0.98] mt-2"
                     >
                         <LogOut size={18} />
                         Logout
-                    </button>
+                    </button> */}
                 </div>
 
                 {/* Media Viewer Modal */}

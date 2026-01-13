@@ -15,15 +15,15 @@ export const ReportModal = ({ isOpen, onClose, onSubmit, reportingUser }) => {
 
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-gray-900 border border-gray-700 p-6 rounded-xl w-full max-w-md shadow-2xl">
-                <h2 className="text-xl text-white font-bold mb-4">Report {reportingUser?.fullName}</h2>
+            <div className="bg-popover border border-border p-6 rounded-xl w-full max-w-md shadow-2xl">
+                <h2 className="text-xl text-foreground font-bold mb-4">Report {reportingUser?.fullName}</h2>
 
                 <div className="mb-4">
-                    <label className="block text-gray-400 text-sm mb-2">Reason</label>
+                    <label className="block text-muted-foreground text-sm mb-2">Reason</label>
                     <select
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 outline-none focus:border-red-500"
+                        className="w-full bg-secondary text-foreground p-3 rounded-lg border border-border outline-none focus:border-red-500"
                     >
                         <option value="spam">Spam</option>
                         <option value="harassment">Harassment</option>
@@ -33,19 +33,19 @@ export const ReportModal = ({ isOpen, onClose, onSubmit, reportingUser }) => {
                 </div>
 
                 <div className="mb-6">
-                    <label className="block text-gray-400 text-sm mb-2">Description (Optional)</label>
+                    <label className="block text-muted-foreground text-sm mb-2">Description (Optional)</label>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Please provide more details..."
-                        className="w-full bg-gray-800 text-white p-3 rounded-lg border border-gray-700 outline-none focus:border-red-500 min-h-[100px]"
+                        className="w-full bg-secondary text-foreground p-3 rounded-lg border border-border outline-none focus:border-red-500 min-h-[100px]"
                     />
                 </div>
 
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-white px-4 py-2 transition-colors"
+                        className="text-muted-foreground hover:text-foreground px-4 py-2 transition-colors"
                     >
                         Cancel
                     </button>

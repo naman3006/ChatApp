@@ -22,8 +22,8 @@ const PollBubble = ({ message }) => {
     };
 
     return (
-        <div className={`rounded-2xl p-4 min-w-[280px] max-w-sm shadow-sm border ${message.senderId === authUser._id ? 'bg-violet-600/90 border-violet-500' : 'bg-gray-800/90 border-gray-700'} backdrop-blur-sm`}>
-            <h3 className="text-white font-medium mb-3 text-lg leading-snug">{poll.question}</h3>
+        <div className={`rounded-2xl p-4 min-w-[280px] max-w-sm shadow-sm border ${message.senderId === authUser._id ? 'bg-violet-600/90 border-violet-500 text-white' : 'bg-secondary/90 border-border text-foreground'} backdrop-blur-sm`}>
+            <h3 className="font-medium mb-3 text-lg leading-snug">{poll.question}</h3>
             <div className="space-y-2">
                 {poll.options.map((option, index) => {
                     const voteCount = option.votes.length;
@@ -39,7 +39,7 @@ const PollBubble = ({ message }) => {
                             {/* Progress Bar Background */}
                             <div className="absolute inset-0 bg-black/20 rounded-lg overflow-hidden">
                                 <div
-                                    className={`h-full transition-all duration-500 ease-out ${message.senderId === authUser._id ? 'bg-white/20' : 'bg-violet-500/30'}`}
+                                    className={`h-full transition-all duration-500 ease-out ${message.senderId === authUser._id ? 'bg-white/20' : 'bg-violet-500/20'}`}
                                     style={{ width: `${percentage}%` }}
                                 />
                             </div>
@@ -47,18 +47,18 @@ const PollBubble = ({ message }) => {
                             {/* Content */}
                             <div className="relative flex items-center justify-between p-3 z-10">
                                 <div className="flex items-center gap-2">
-                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isVoted ? 'border-white bg-white' : 'border-gray-400 group-hover:border-white'}`}>
-                                        {isVoted && <div className="w-2 h-2 rounded-full bg-violet-600 mb-[0.5px]" />}
+                                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isVoted ? 'border-violet-600 bg-violet-600' : 'border-muted-foreground group-hover:border-violet-500'}`}>
+                                        {isVoted && <div className="w-2 h-2 rounded-full bg-white mb-[0.5px]" />}
                                     </div>
-                                    <span className="text-white text-sm font-medium">{option.text}</span>
+                                    <span className="text-sm font-medium">{option.text}</span>
                                 </div>
-                                <span className="text-xs text-gray-200 font-medium">{percentage}% ({voteCount})</span>
+                                <span className={`text-xs font-medium ${message.senderId === authUser._id ? 'text-white/80' : 'text-muted-foreground'}`}>{percentage}% ({voteCount})</span>
                             </div>
                         </div>
                     );
                 })}
             </div>
-            <div className="mt-3 text-xs text-gray-300 flex justify-between items-center opacity-80">
+            <div className={`mt-3 text-xs flex justify-between items-center opacity-80 ${message.senderId === authUser._id ? 'text-white/80' : 'text-muted-foreground'}`}>
                 <span>{totalVotes} votes</span>
                 <span>{poll.allowMultipleAnswers ? "Multiple answers" : "Single answer"}</span>
             </div>

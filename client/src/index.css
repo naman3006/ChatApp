@@ -4,11 +4,87 @@
 @tailwind components;
 @tailwind utilities;
 
-*{
-  font-family: "Outfit", sans-serif;
+@layer base {
+  :root {
+    --background: #f8fafc;
+    /* slate-50 - softer than pure white for eyes */
+    --foreground: #0f172a;
+    /* slate-900 */
+
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+
+    --primary: #7c3aed;
+    /* violet-600 */
+    --primary-foreground: #ffffff;
+
+    --secondary: #f1f5f9;
+    /* slate-100 */
+    --secondary-foreground: #1e293b;
+    /* slate-800 */
+
+    --muted: #f8fafc;
+    /* slate-50 */
+    --muted-foreground: #64748b;
+    /* slate-500 */
+
+    --accent: #e2e8f0;
+    /* slate-200 */
+    --accent-foreground: #0f172a;
+
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+
+    --border: #e2e8f0;
+    /* slate-200 */
+    --input: #e2e8f0;
+    --ring: #7c3aed;
+  }
+
+  .dark {
+    --background: #030712;
+    /* gray-950 */
+    --foreground: #f9fafb;
+    /* gray-50 */
+
+    --card: #111827;
+    /* gray-900 */
+    --card-foreground: #f9fafb;
+
+    --popover: #111827;
+    /* gray-900 */
+    --popover-foreground: #f9fafb;
+
+    --primary: #7c3aed;
+    --primary-foreground: #ffffff;
+
+    --secondary: #1f2937;
+    /* gray-800 */
+    --secondary-foreground: #f9fafb;
+
+    --muted: #1f2937;
+    --muted-foreground: #9ca3af;
+    /* gray-400 */
+
+    --accent: #1f2937;
+    --accent-foreground: #f9fafb;
+
+    --destructive: #7f1d1d;
+    --destructive-foreground: #f9fafb;
+
+    --border: #374151;
+    /* gray-700 */
+    --input: #374151;
+    --ring: #8b5cf6;
+    /* violet-500 */
+  }
 }
 
-::-webkit-scrollbar{
+
+::-webkit-scrollbar {
   display: none;
 }
 
@@ -16,20 +92,34 @@
 
 @layer utilities {
   @keyframes wave {
-    0%, 100% { height: 20%; }
-    50% { height: 100%; }
+
+    0%,
+    100% {
+      height: 20%;
+    }
+
+    50% {
+      height: 100%;
+    }
   }
+
   .animate-wave {
     animation: wave 1s infinite ease-in-out;
   }
-  
+
   @keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
+    0% {
+      background-position: -1000px 0;
+    }
+
+    100% {
+      background-position: 1000px 0;
+    }
   }
+
   .animate-shimmer {
     animation: shimmer 2s infinite linear;
-    background: linear-gradient(to right, rgba(255,255,255,0.05) 4%, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.05) 36%);
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.05) 4%, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.05) 36%);
     background-size: 1000px 100%;
   }
 }

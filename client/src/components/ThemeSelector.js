@@ -43,24 +43,24 @@ const ThemeSelector = ({ onClose, onSelect, currentTheme }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="bg-popover border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-800">
-                    <h2 className="text-lg font-semibold text-white">Customize Chat Theme</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                <div className="flex items-center justify-between p-4 border-b border-border">
+                    <h2 className="text-lg font-semibold text-foreground">Customize Chat Theme</h2>
+                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 18 12" /></svg>
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex p-2 gap-2 bg-gray-950/50">
+                <div className="flex p-2 gap-2 bg-muted/50">
                     {["solid", "gradient", "image"].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === tab
-                                    ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
-                                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                                ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
                                 }`}
                         >
                             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -78,7 +78,7 @@ const ThemeSelector = ({ onClose, onSelect, currentTheme }) => {
                                     onSelect({ type: activeTab, value: theme.value, id: theme.id });
                                     onClose();
                                 }}
-                                className={`relative group bg-gray-800 rounded-xl overflow-hidden aspect-video border-2 transition-all hover:scale-105 ${currentTheme?.id === theme.id ? "border-violet-500 ring-2 ring-violet-500/20" : "border-transparent hover:border-gray-600"
+                                className={`relative group bg-muted/30 rounded-xl overflow-hidden aspect-video border-2 transition-all hover:scale-105 ${currentTheme?.id === theme.id ? "border-violet-500 ring-2 ring-violet-500/20" : "border-transparent hover:border-muted-foreground/20"
                                     }`}
                             >
                                 <div
@@ -100,8 +100,8 @@ const ThemeSelector = ({ onClose, onSelect, currentTheme }) => {
                             <div className="col-span-2 space-y-4">
                                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-700 rounded-xl hover:border-violet-500 hover:bg-violet-500/5 transition-all cursor-pointer group">
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <svg className="w-8 h-8 mb-3 text-gray-500 group-hover:text-violet-400 transition-colors" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
-                                        <p className="text-sm text-gray-400 group-hover:text-gray-300">Upload Wallpaper</p>
+                                        <svg className="w-8 h-8 mb-3 text-muted-foreground group-hover:text-violet-400 transition-colors" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
+                                        <p className="text-sm text-muted-foreground group-hover:text-foreground">Upload Wallpaper</p>
                                     </div>
                                     <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                                 </label>

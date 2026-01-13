@@ -27,14 +27,14 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cover bg-center flex items-center justify-center gap-8 sm:justify-evenly max-sm:flex-col backdrop-blur-2xl">
+    <div className="min-h-screen bg-cover bg-center flex items-center justify-center gap-8 sm:justify-evenly max-sm:flex-col backdrop-blur-2xl bg-background/50">
       <img src={assets.logo_big} alt="" className="w-[min(30vw,250px)]" />
 
       <form
         onSubmit={onSubmitHandler}
-        className="border-2 bg-white/8 text-white border-gray-500 p-6 flex flex-col gap-6 rounded-lg shadow-lg"
+        className="border-2 bg-card/80 text-card-foreground border-border p-6 flex flex-col gap-6 rounded-lg shadow-lg"
       >
-        <h2 className="font-medium text-2xl flex justify-between items-center">
+        <h2 className="font-medium text-2xl flex justify-between items-center text-foreground">
           {currState}
           {isDataSubmitted && (
             <img
@@ -50,7 +50,7 @@ export const LoginPage = () => {
             onChange={(e) => setFullName(e.target.value)}
             value={fullName}
             type="text"
-            className=" p-2 border  text-black border-gray-500 rounded-md  focus:outline-none"
+            className=" p-2 border text-foreground bg-background border-border rounded-md  focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Full Name"
             required
           />
@@ -63,7 +63,7 @@ export const LoginPage = () => {
               type="email"
               placeholder="Email Address"
               required
-              className="p-2 border text-black border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="p-2 border text-foreground bg-background border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             <input
@@ -72,7 +72,7 @@ export const LoginPage = () => {
               type="password"
               placeholder="Password"
               required
-              className="p-2 border text-black border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="p-2 border text-foreground bg-background border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </>
         )}

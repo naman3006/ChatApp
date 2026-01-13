@@ -40,7 +40,7 @@ export const RightSidebar = () => {
   if (!selectedUser) return null;
 
   return (
-    <div className="hidden xl:flex flex-col h-full bg-[#1c1d2e] border-l border-white/5 w-full relative overflow-hidden transition-all duration-300">
+    <div className="hidden xl:flex flex-col h-full bg-background border-l border-border w-full relative overflow-hidden transition-all duration-300">
 
       {/* 1. Top Section: Profile Info */}
       <div className="flex flex-col items-center pt-10 pb-6 px-6 relative">
@@ -49,35 +49,35 @@ export const RightSidebar = () => {
           <img
             src={selectedUser.profilePic || assets.avatar_icon}
             alt={selectedUser.fullName}
-            className="relative w-28 h-28 rounded-full object-cover border-4 border-[#1c1d2e] shadow-xl"
+            className="relative w-28 h-28 rounded-full object-cover border-4 border-background shadow-xl"
           />
           {onlineUsers.includes(selectedUser._id) && (
-            <span className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-[#1c1d2e] rounded-full"></span>
+            <span className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-background rounded-full"></span>
           )}
         </div>
 
-        <h2 className="text-xl font-bold text-white mb-1 text-center">{selectedUser.fullName}</h2>
+        <h2 className="text-xl font-bold text-foreground mb-1 text-center">{selectedUser.fullName}</h2>
 
-        <div className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
+        <div className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
           {onlineUsers.includes(selectedUser._id) ? (
-            <span className="text-green-400">Online</span>
+            <span className="text-green-500">Online</span>
           ) : (
             <span>{formatLastSeen(selectedUser.lastSeen)}</span>
           )}
         </div>
 
-        <p className="text-center text-gray-400 text-sm italic px-4 line-clamp-3">
+        <p className="text-center text-muted-foreground text-sm italic px-4 line-clamp-3">
           {selectedUser.bio || "No bio available"}
         </p>
       </div>
 
-      <hr className="border-white/5 w-4/5 mx-auto" />
+      <hr className="border-border w-4/5 mx-auto" />
 
       {/* 2. Middle Section: Media Gallery */}
       <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Shared Media</h3>
-          <span className="text-xs text-gray-500">{mediaItems.length} files</span>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Shared Media</h3>
+          <span className="text-xs text-muted-foreground">{mediaItems.length} files</span>
         </div>
 
         {mediaItems.length > 0 ? (
@@ -86,7 +86,7 @@ export const RightSidebar = () => {
               <div
                 key={idx}
                 onClick={() => setSelectedMedia(item)}
-                className="aspect-square rounded-lg overflow-hidden cursor-pointer relative group border border-white/5 hover:border-violet-500/50 transition-colors"
+                className="aspect-square rounded-lg overflow-hidden cursor-pointer relative group border border-border hover:border-primary/50 transition-colors"
               >
                 <img
                   src={item.url}
@@ -100,7 +100,7 @@ export const RightSidebar = () => {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-gray-500 space-y-2">
+          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground space-y-2">
             <ImageIcon size={32} className="opacity-50" />
             <span className="text-xs">No media shared yet</span>
           </div>
@@ -109,7 +109,7 @@ export const RightSidebar = () => {
         {mediaItems.length > 6 && !showAllMedia && (
           <button
             onClick={() => setShowAllMedia(true)}
-            className="w-full mt-4 py-2 text-xs text-violet-400 hover:text-violet-300 font-medium bg-violet-500/10 hover:bg-violet-500/20 rounded-lg transition-colors"
+            className="w-full mt-4 py-2 text-xs text-primary hover:text-primary/80 font-medium bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
           >
             View All Media
           </button>
@@ -117,12 +117,12 @@ export const RightSidebar = () => {
       </div>
 
       {/* 3. Bottom Section: Actions */}
-      <div className="p-6 bg-[#151625]/50 backdrop-blur-sm mt-auto border-t border-white/5 space-y-3">
+      <div className="p-6 bg-muted/50 backdrop-blur-sm mt-auto border-t border-border space-y-3">
 
         <button
           onClick={handleBlockToggle}
           className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-200 transform active:scale-[0.98] ${isBlocked
-            ? 'bg-gray-700 text-white hover:bg-gray-600'
+            ? 'bg-muted text-foreground hover:bg-muted/80'
             : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'
             }`}
         >

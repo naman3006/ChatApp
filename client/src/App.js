@@ -10,6 +10,8 @@ import { useContext } from "react";
 import { AuthContext } from "./context/authContext";
 import VideoCall from "./components/VideoCall";
 import CallNotification from "./components/CallNotification";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 import { Loader } from "lucide-react";
 
@@ -37,6 +39,14 @@ function App() {
         <Route
           path="/login"
           element={!authUser ? <LoginPage /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/forgot-password"
+          element={!authUser ? <ForgotPasswordPage /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/reset-password/:token"
+          element={!authUser ? <ResetPasswordPage /> : <Navigate to="/" />}
         />
         <Route
           path="/profile"

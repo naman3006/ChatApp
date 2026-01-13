@@ -75,6 +75,13 @@ export const LoginPage = () => {
             />
           </>
         )}
+        {!isDataSubmitted && currState !== "Sign up" && (
+          <div className="text-right">
+            <a href="/forgot-password" className="text-sm text-violet-500 hover:underline">
+              Forgot Password?
+            </a>
+          </div>
+        )}
         {currState === "Sign up" && isDataSubmitted && (
           <div className="flex flex-col gap-2">
             <h1 className="text-lg font-medium text-white">Bio</h1>

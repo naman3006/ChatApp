@@ -2,6 +2,9 @@ import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
+import { sendResetEmail } from "../lib/email.js";
+import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
 
 //Signup a new user
 export const signup = async (req, res) => {
@@ -185,6 +188,55 @@ export const updateUserTheme = async (req, res) => {
     res.json({ success: true, message: "Theme updated", theme });
   } catch (error) {
     console.log("Error in updateUserTheme:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Create a temporary token specifically for password reset
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const resetUrl = `http://localhost:3000/reset-password/${token}`;
+
+    const info = await sendResetEmail(email, resetUrl);
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+
+    res.json({ success: true, message: "Password reset email sent", previewUrl });
+  } catch (error) {
+    console.log("Error in forgotPassword:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded) {
+      return res.status(400).json({ success: false, message: "Invalid or expired token" });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    await user.save();
+
+    res.json({ success: true, message: "Password updated successfully" });
+  } catch (error) {
+    console.log("Error in resetPassword:", error.message);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

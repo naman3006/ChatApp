@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/authContext';
 import { Eye, EyeOff, User, Mail, Lock, ArrowRight, Github, Twitter, Linkedin } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+
 
 export const LoginPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);

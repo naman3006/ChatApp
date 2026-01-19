@@ -1,8 +1,7 @@
 import React, { memo } from "react";
-import { formatMessageTime, formatDateSeparator } from "../lib/utils";
+import { formatDateSeparator } from "../lib/utils";
 import VoiceMessage from "./VoiceMessage";
 import PollBubble from "./PollBubble";
-import assets from "../chat-assets/assets";
 
 const MessageBubble = ({
     msg,

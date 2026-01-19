@@ -3,7 +3,7 @@ import { ChatContext } from "../context/ChatContext";
 import { AuthContext } from "../context/authContext";
 
 const PollBubble = ({ message }) => {
-    const { pollDetails, votePoll } = useContext(ChatContext);
+    const { votePoll } = useContext(ChatContext);
     const { authUser } = useContext(AuthContext);
 
     // Poll data might be populated in message.pollId or handled via separate state if updated real-time

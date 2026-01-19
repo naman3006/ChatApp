@@ -43,7 +43,7 @@ export const Sidebar = () => {
 
     const [viewerUserId, setViewerUserId] = useState(null);
     const [isCreatingStatus, setIsCreatingStatus] = useState(false);
-    const { createStatus } = useContext(StatusContext);
+    const { createStatus, getStatuses } = useContext(StatusContext);
 
 
     const [input, setInput] = useState("");
@@ -250,7 +250,7 @@ export const Sidebar = () => {
             </div>
             {/* Status Modals */}
             <>
-                {viewerUserId && <StatusViewer startUserId={viewerUserId} onClose={() => setViewerUserId(null)} />}
+                {viewerUserId && <StatusViewer startUserId={viewerUserId} onClose={() => { setViewerUserId(null); getStatuses(); }} />}
                 {isCreatingStatus && <CreateStatusModal onClose={() => setIsCreatingStatus(false)} onCreate={createStatus} />}
             </>
         </div>

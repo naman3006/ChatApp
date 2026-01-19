@@ -31,18 +31,22 @@ const StatusList = ({ onOpenViewer, onCreateStatus }) => {
             </div>
 
             {/* Other Statuses */}
-            {otherStatuses.map((statusGroup) => (
-                <div key={statusGroup.user._id} className="flex flex-col items-center gap-1 min-w-[60px] cursor-pointer group" onClick={() => onOpenViewer(statusGroup.user._id)}>
-                    <div className="w-[52px] h-[52px] rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 transition-transform group-hover:scale-105">
-                        <img
-                            src={statusGroup.user.profilePic || "/avatar.png"}
-                            alt={statusGroup.user.fullName}
-                            className="w-full h-full rounded-full object-cover border-2 border-[#131313]"
-                        />
+            {otherStatuses.map((statusGroup) => {
+                const hasUnseen = statusGroup.statuses.some(s => !s.viewers.some(v => v.userId === authUser._id));
+
+                return (
+                    <div key={statusGroup.user._id} className="flex flex-col items-center gap-1 min-w-[60px] cursor-pointer group" onClick={() => onOpenViewer(statusGroup.user._id)}>
+                        <div className={`w-[52px] h-[52px] rounded-full p-[2px] transition-transform group-hover:scale-105 ${hasUnseen ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'bg-gray-700'}`}>
+                            <img
+                                src={statusGroup.user.profilePic || "/avatar.png"}
+                                alt={statusGroup.user.fullName}
+                                className="w-full h-full rounded-full object-cover border-2 border-[#131313]"
+                            />
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-medium truncate w-14 text-center">{statusGroup.user.fullName.split(" ")[0]}</span>
                     </div>
-                    <span className="text-[10px] text-gray-400 font-medium truncate w-14 text-center">{statusGroup.user.fullName.split(" ")[0]}</span>
-                </div>
-            ))}
+                )
+            })}
         </div>
     );
 };

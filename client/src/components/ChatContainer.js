@@ -1,11 +1,9 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import assets from "../chat-assets/assets";
-import { formatMessageTime, formatLastSeen, formatDateSeparator } from "../lib/utils";
+import { formatMessageTime } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
 import { AuthContext } from "../context/authContext";
-import VoiceMessage from "./VoiceMessage";
 import toast from "react-hot-toast";
 import EmojiPicker from 'emoji-picker-react';
 import { CallContext } from "../context/CallContext";
@@ -13,8 +11,6 @@ import { Phone, Video, Palette, BarChart2 } from "lucide-react";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import ThemeSelector from "./ThemeSelector";
 import CreatePollModal from "./CreatePollModal";
-import PollBubble from "./PollBubble";
-import { ThemeToggle } from "./ThemeToggle";
 import MessageBubble from "./MessageBubble";
 import ForwardModal from "./ForwardModal";
 
@@ -432,6 +428,7 @@ export const ChatContainer = () => {
     const chatId = selectedGroup ? selectedGroup._id : selectedUser._id;
     const isGroup = !!selectedGroup;
     getMessages(chatId, isGroup, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser, selectedGroup]);
 
   // Handle scroll position maintenance when older messages load
@@ -457,6 +454,7 @@ export const ChatContainer = () => {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, selectedUser, selectedGroup]);
 
   const handleScroll = () => {

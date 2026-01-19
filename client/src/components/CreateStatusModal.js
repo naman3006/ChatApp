@@ -18,10 +18,11 @@ const CreateStatusModal = ({ onClose, onCreate }) => {
 
     // Cleanup audio on unmount
     useEffect(() => {
+        const audio = audioRef.current;
         return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
             }
         };
     }, []);
@@ -38,20 +39,20 @@ const CreateStatusModal = ({ onClose, onCreate }) => {
 
     // Trending Music Fetch
     useEffect(() => {
+        const fetchTrendingMusic = async () => {
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=top+hits&entity=song&limit=20`);
+                const data = await res.json();
+                setMusicResults(data.results);
+            } catch (error) {
+                console.error("Failed to fetch trending music");
+            }
+        };
+
         if (showMusicSearch && musicResults.length === 0) {
             fetchTrendingMusic();
         }
-    }, [showMusicSearch]);
-
-    const fetchTrendingMusic = async () => {
-        try {
-            const res = await fetch(`https://itunes.apple.com/search?term=top+hits&entity=song&limit=20`);
-            const data = await res.json();
-            setMusicResults(data.results);
-        } catch (error) {
-            console.error("Failed to fetch trending music");
-        }
-    };
+    }, [showMusicSearch, musicResults.length]);
 
     const handleSearchMusic = async (e) => {
         e.preventDefault();

@@ -20,6 +20,7 @@ const statusSchema = new mongoose.Schema({
 
 // TTL Index for 24 hours (86400 seconds)
 statusSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
+statusSchema.index({ userId: 1 });
 
 const Status = mongoose.model("Status", statusSchema);
 export default Status;

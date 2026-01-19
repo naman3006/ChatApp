@@ -27,6 +27,7 @@ const apiKeySchema = new mongoose.Schema({
 
 // Index for faster lookups
 apiKeySchema.index({ userId: 1 });
+apiKeySchema.index({ keyHash: 1 });
 
 const ApiKey = mongoose.model("ApiKey", apiKeySchema);
 export default ApiKey;

@@ -26,5 +26,8 @@ const reportSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
+reportSchema.index({ reportedId: 1 });
+reportSchema.index({ status: 1 });
+
 const Report = mongoose.model("Report", reportSchema);
 export default Report;

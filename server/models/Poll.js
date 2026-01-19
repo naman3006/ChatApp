@@ -30,5 +30,7 @@ const pollSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+pollSchema.index({ groupId: 1 });
+
 const Poll = mongoose.model("Poll", pollSchema);
 export default Poll;

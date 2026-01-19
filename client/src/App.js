@@ -1,19 +1,20 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { HomePage } from "./pages/HomePage";
-import { LoginPage } from "./pages/LoginPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { UserProfilePage } from "./pages/UserProfilePage";
-import SettingsPage from "./pages/SettingsPage";
 import { Toaster } from "react-hot-toast";
-import { useContext } from "react";
+import { useContext, lazy, Suspense } from "react"; // Added lazy, Suspense
 import { AuthContext } from "./context/authContext";
 import VideoCall from "./components/VideoCall";
 import CallNotification from "./components/CallNotification";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import JoinPage from "./pages/JoinPage";
-
 import { Loader } from "lucide-react";
+
+// Lazy Loaded Components
+const HomePage = lazy(() => import("./pages/HomePage").then(module => ({ default: module.HomePage })));
+const LoginPage = lazy(() => import("./pages/LoginPage").then(module => ({ default: module.LoginPage })));
+const ProfilePage = lazy(() => import("./pages/ProfilePage").then(module => ({ default: module.ProfilePage })));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage").then(module => ({ default: module.UserProfilePage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const JoinPage = lazy(() => import("./pages/JoinPage"));
 
 // Wrapper to redirect authenticated users
 const AuthRedirect = ({ children }) => {
@@ -27,15 +28,18 @@ const AuthRedirect = ({ children }) => {
   return children;
 };
 
+// Loading Component for Suspense Fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-screen w-full bg-slate-900">
+    <Loader className="size-10 animate-spin text-white" />
+  </div>
+);
+
 function App() {
   const { authUser, isCheckingAuth } = useContext(AuthContext);
 
   if (isCheckingAuth && !authUser) {
-    return (
-      <div className="flex items-center justify-center h-screen w-full bg-slate-900">
-        <Loader className="size-10 animate-spin text-white" />
-      </div>
-    )
+    return <PageLoader />;
   }
 
   return (
@@ -43,40 +47,42 @@ function App() {
       <Toaster />
       <VideoCall />
       <CallNotification />
-      <Routes>
-        <Route
-          path="/"
-          element={authUser ? <HomePage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/login"
-          element={<AuthRedirect><LoginPage /></AuthRedirect>}
-        />
-        <Route
-          path="/forgot-password"
-          element={<AuthRedirect><ForgotPasswordPage /></AuthRedirect>}
-        />
-        <Route
-          path="/reset-password/:token"
-          element={<AuthRedirect><ResetPasswordPage /></AuthRedirect>}
-        />
-        <Route
-          path="/profile"
-          element={authUser ? <ProfilePage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/settings"
-          element={authUser ? <SettingsPage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/user/:userId"
-          element={authUser ? <UserProfilePage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/invite/:code"
-          element={<JoinPage />}
-        />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route
+            path="/"
+            element={authUser ? <HomePage /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/login"
+            element={<AuthRedirect><LoginPage /></AuthRedirect>}
+          />
+          <Route
+            path="/forgot-password"
+            element={<AuthRedirect><ForgotPasswordPage /></AuthRedirect>}
+          />
+          <Route
+            path="/reset-password/:token"
+            element={<AuthRedirect><ResetPasswordPage /></AuthRedirect>}
+          />
+          <Route
+            path="/profile"
+            element={authUser ? <ProfilePage /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/settings"
+            element={authUser ? <SettingsPage /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/user/:userId"
+            element={authUser ? <UserProfilePage /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/invite/:code"
+            element={<JoinPage />}
+          />
+        </Routes>
+      </Suspense>
     </div>
   );
 }

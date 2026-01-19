@@ -228,7 +228,7 @@ export const markMessageAsSeen = async (req, res) => {
 //send message to selected user
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image, audio, groupId } = req.body; // Added groupId
+    const { text, image, audio, file, groupId } = req.body; // Added file
     const receiverId = req.params.id; // Still used for DM
     const senderId = req.user._id;
 
@@ -274,34 +274,59 @@ export const sendMessage = async (req, res) => {
       audioUrl = uploadResponse.secure_url;
     }
 
+    let fileData = null;
+    if (file) {
+      // file object expected to have { data, name, type, size }
+      // Upload raw file
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(file.data, {
+          resource_type: "auto", // "auto" detects if it's a pdf/image/raw
+          // For generic files, "raw" might be safer to avoid transformation errors, but "auto" is flexible
+          // Let's stick to "auto" but if it fails for specific types we might need "raw"
+          // actually standard practice for non-media is "raw" usually. 
+          // However, if we want PDF previews later, "image" or "auto" is better.
+          // Let's use "auto" for now.
+          folder: "chat_files"
+        });
+
+        fileData = {
+          url: uploadResponse.secure_url,
+          publicId: uploadResponse.public_id,
+          name: file.name,
+          size: file.size,
+          mimeType: file.type
+        };
+      } catch (err) {
+        console.error("File upload error:", err);
+        // Continue without file or throw? Let's throw to notify user
+        throw new Error("File upload failed");
+      }
+    }
+
     let newMessage;
+    const messageData = {
+      senderId,
+      text,
+      image: imageUrl,
+      audio: audioUrl,
+      file: fileData,
+      expiresAt,
+    };
+
     if (groupId) {
       // Group Message
-      newMessage = await Message.create({
-        senderId,
-        groupId,
-        text,
-        image: imageUrl,
-        audio: audioUrl,
-        expiresAt,
-      });
+      messageData.groupId = groupId;
+      newMessage = await Message.create(messageData);
 
       // Populate sender info for immediate display
       await newMessage.populate('senderId', 'fullName profilePic');
 
       // Emit to Group Room
-      // Assuming clients join room "group_{groupId}"
       io.to(`group_${groupId}`).emit("newGroupMessage", newMessage);
     } else {
       // DM
-      newMessage = await Message.create({
-        senderId,
-        receiverId,
-        text,
-        image: imageUrl,
-        audio: audioUrl,
-        expiresAt,
-      });
+      messageData.receiverId = receiverId;
+      newMessage = await Message.create(messageData);
 
       // Emit to Receiver's Room (all their tabs)
       io.to(receiverId).emit("newMessage", newMessage);

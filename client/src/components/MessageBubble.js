@@ -2,6 +2,7 @@ import React, { memo } from "react";
 import { formatDateSeparator } from "../lib/utils";
 import VoiceMessage from "./VoiceMessage";
 import PollBubble from "./PollBubble";
+import { FileText, File, FileArchive, Film, Image as ImageIcon, Download } from "lucide-react";
 
 const MessageBubble = ({
     msg,
@@ -188,11 +189,47 @@ const MessageBubble = ({
                             </div>
                         )}
 
+                        {msg.file && (
+                            <div className={`rounded-xl p-3 flex items-center gap-3 min-w-[200px] max-w-[280px] shadow-sm border transaction-all ${!isMyMessage ? "bg-[#1f2937] border-gray-700/50 rounded-tl-none text-gray-200" : "bg-[#6366f1] border-white/10 rounded-tr-none text-white"}`}>
+                                <div className={`p-2.5 rounded-lg shrink-0 ${!isMyMessage ? "bg-gray-800" : "bg-white/20"}`}>
+                                    {(() => {
+                                        const type = msg.file.mimeType || "application/octet-stream";
+                                        if (type.includes('pdf')) return <FileText size={20} />;
+                                        if (type.includes('zip') || type.includes('rar')) return <FileArchive size={20} />;
+                                        if (type.includes('image')) return <ImageIcon size={20} />;
+                                        if (type.includes('video')) return <Film size={20} />;
+                                        return <File size={20} />;
+                                    })()}
+                                </div>
+                                <div className="flex-1 min-w-0 overflow-hidden">
+                                    <p className="text-sm font-medium truncate" title={msg.file.name}>{msg.file.name}</p>
+                                    <p className={`text-[10px] ${!isMyMessage ? "text-gray-400" : "text-white/70"}`}>
+                                        {(() => {
+                                            const bytes = msg.file.size;
+                                            if (!bytes) return "File";
+                                            const k = 1024;
+                                            const sizes = ['B', 'KB', 'MB', 'GB'];
+                                            const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                                        })()}
+                                        {/* • {msg.file.mimeType?.split('/')[1]?.toUpperCase()} */}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleDownloadImage(msg.file.url, msg.file.name); }}
+                                    className={`p-2 rounded-full transition-colors shrink-0 ${!isMyMessage ? "hover:bg-gray-700 text-gray-400 hover:text-white" : "hover:bg-white/20 text-white/80 hover:text-white"}`}
+                                    title="Download"
+                                >
+                                    <Download size={18} />
+                                </button>
+                            </div>
+                        )}
+
                         {msg.pollId && (
                             <PollBubble message={msg} />
                         )}
 
-                        {!msg.image && !msg.audio && !msg.pollId && (
+                        {!msg.image && !msg.audio && !msg.pollId && !msg.file && (
                             editingMessageId === msg._id ? (
                                 <div className="flex flex-col gap-2 min-w-[200px]">
                                     <input
@@ -318,7 +355,7 @@ const MessageBubble = ({
                                                     </button>
                                                 )}
 
-                                                {isMyMessage && !msg.image && !msg.audio && (!msg.text || !msg.text.match(/^(Audio|Video) Call ended •/)) && (
+                                                {isMyMessage && !msg.image && !msg.audio && !msg.file && (!msg.text || !msg.text.match(/^(Audio|Video) Call ended •/)) && (
                                                     <button onClick={() => startEditing(msg)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted border-t border-border active:bg-muted flex items-center gap-3 md:gap-2">
                                                         <span className="md:hidden p-2 bg-gray-800 rounded-full text-blue-400">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>

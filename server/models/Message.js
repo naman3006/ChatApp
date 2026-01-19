@@ -23,6 +23,13 @@ const messageSchema = new mongoose.Schema(
     text: { type: String },
     image: { type: String },
     audio: { type: String },
+    file: {
+      url: { type: String },
+      publicId: { type: String },
+      name: { type: String },
+      size: { type: String },
+      mimeType: { type: String }
+    },
     pinned: { type: Boolean, default: false },
     pinnedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     pinnedAt: { type: Date },
@@ -47,7 +54,7 @@ messageSchema.index({ senderId: 1, receiverId: 1, createdAt: -1 });
 messageSchema.index({ receiverId: 1, senderId: 1, createdAt: -1 });
 // TTL Index for ephemeral messages
 messageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-messageSchema.index({ receiverId: 1, senderId: 1, createdAt: -1 });
+// Duplicate index removed
 
 const Message = mongoose.model("Message", messageSchema);
 export default Message;

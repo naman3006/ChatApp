@@ -28,8 +28,14 @@ export const messageSchema = z.object({
     text: z.string().optional(),
     image: z.string().optional(),
     audio: z.string().optional(),
+    file: z.object({
+        data: z.string(),
+        name: z.string(),
+        size: z.number(),
+        type: z.string()
+    }).optional(),
     groupId: z.string().optional(),
-}).refine(data => data.text || data.image || data.audio, {
-    message: "Either text, image, or audio must be provided",
+}).refine(data => data.text || data.image || data.audio || data.file, {
+    message: "Either text, image, audio, or file must be provided",
     path: ["text"],
 });

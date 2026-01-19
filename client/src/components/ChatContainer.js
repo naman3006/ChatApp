@@ -13,6 +13,9 @@ import ThemeSelector from "./ThemeSelector";
 import CreatePollModal from "./CreatePollModal";
 import MessageBubble from "./MessageBubble";
 import ForwardModal from "./ForwardModal";
+import AttachmentMenu from "./AttachmentMenu";
+import FilePreview from "./FilePreview";
+import { Paperclip, Send, Image as ImageIcon, X } from "lucide-react";
 
 export const ChatContainer = () => {
   const navigate = useNavigate();
@@ -78,6 +81,10 @@ export const ChatContainer = () => {
   const [showPollModal, setShowPollModal] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null); // { file, data }
+  const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
 
 
   const typingTimeoutRef = useRef(null);
@@ -230,7 +237,7 @@ export const ChatContainer = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (input.trim() === "" && !imagePreview) {
+    if (input.trim() === "" && !imagePreview && !selectedFile) {
       return null;
     }
 
@@ -239,15 +246,51 @@ export const ChatContainer = () => {
       if (imagePreview) {
         await sendMessage({ image: imagePreview, text: input.trim() });
         setImagePreview(null);
+      } else if (selectedFile) {
+        // Send file
+        await sendMessage({
+          file: {
+            data: selectedFile.data,
+            name: selectedFile.file.name,
+            size: selectedFile.file.size,
+            type: selectedFile.file.type
+          },
+          text: input.trim()
+        });
+        setSelectedFile(null);
       } else {
         await sendMessage({ text: input.trim() });
       }
       setInput("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
+      console.error(error);
       toast.error("Failed to send message");
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Limit 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size too large (max 10MB)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedFile({
+        file: file,
+        data: reader.result
+      });
+      setShowAttachmentMenu(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   const startEditing = (msg) => {
@@ -363,7 +406,7 @@ export const ChatContainer = () => {
     }
   };
 
-  const handleDownloadImage = async (imageUrl) => {
+  const handleDownloadImage = async (imageUrl, fileName) => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -371,12 +414,13 @@ export const ChatContainer = () => {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `chat-image-${Date.now()}.png`;
+      // If fileName provided, use it. Else default to image png.
+      a.download = fileName || `chat-image-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error("Failed to download image");
+      toast.error("Failed to download file");
     }
   };
 
@@ -1169,12 +1213,61 @@ export const ChatContainer = () => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 w-full">
-            <div className="flex-1 flex items-center bg-secondary/80 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-[24px] border border-border/50 shadow-lg focus-within:border-violet-500/50 focus-within:bg-secondary focus-within:shadow-violet-500/10 transition-all w-full relative">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2 w-full relative">
+            {/* Hidden Inputs */}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={imageInputRef}
+              onChange={handleImageSelect}
+            />
+            <input
+              type="file" // Accept all files
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+            />
+
+            {/* Attachment Menu Trigger */}
+            <div className="relative">
+              <button
+                type="button"
+                className={`p-3 rounded-full transition-all duration-200 shadow-sm ${showAttachmentMenu ? 'bg-violet-600 text-white rotate-45' : 'bg-secondary/80 backdrop-blur-md text-muted-foreground hover:bg-secondary hover:text-foreground'}`}
+                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                title="Attach"
+              >
+                {showAttachmentMenu ? <X size={20} /> : <Paperclip size={20} />}
+              </button>
+              <AttachmentMenu
+                isOpen={showAttachmentMenu}
+                onClose={() => setShowAttachmentMenu(false)}
+                onSelectImage={() => {
+                  imageInputRef.current.click();
+                  setShowAttachmentMenu(false);
+                }}
+                onSelectDocument={() => {
+                  fileInputRef.current.click();
+                  setShowAttachmentMenu(false);
+                }}
+                onSelectPoll={() => {
+                  setShowPollModal(true);
+                  setShowAttachmentMenu(false);
+                }}
+              />
+            </div>
+
+            {/* File Preview Over Input */}
+            <FilePreview
+              file={selectedFile?.file}
+              onRemove={() => setSelectedFile(null)}
+            />
+
+            <div className="flex-1 flex items-center bg-secondary/80 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-[24px] border border-border/50 shadow-lg focus-within:border-violet-500/50 focus-within:bg-secondary focus-within:shadow-violet-500/10 transition-all w-full relative group">
               <input
                 onChange={handleInputChange}
                 value={input}
-                onKeyDown={(e) => (e.key === "Enter" ? handleSendMessage(e) : null)}
+                // onKeyDown={(e) => (e.key === "Enter" ? handleSendMessage(e) : null)} // Form handles submit
                 type="text"
                 placeholder={imagePreview ? "Add a caption..." : "Message..."}
                 className="flex-1 text-[15px] md:text-base py-2.5 md:py-3 bg-transparent outline-none text-foreground placeholder:text-muted-foreground min-w-0"
@@ -1182,52 +1275,32 @@ export const ChatContainer = () => {
               />
 
               <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
-                <input
-                  onChange={handleImageSelect}
-                  type="file"
-                  id="image"
-                  accept=".jpg, .jpeg, .png"
-                  hidden
-                  disabled={isUploading}
-                />
-                <label htmlFor="image" className={`cursor-pointer text-muted-foreground hover:text-violet-400 p-2 rounded-full hover:bg-muted transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`} title="Attach Image">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
-                </label>
-
                 <button
+                  type="button"
                   onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); }}
                   className={`text-muted-foreground hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-muted ${showEmojiPicker ? 'text-yellow-400' : ''}`}
                   title="Emoji"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" x2="9.01" y1="9" y2="9" /><line x1="15" x2="15.01" y1="9" y2="9" /></svg>
                 </button>
-
-                {selectedGroup && (
-                  <button
-                    onClick={() => setShowPollModal(true)}
-                    className="text-muted-foreground hover:text-violet-400 transition-colors p-2 rounded-full hover:bg-muted"
-                    title="Create Poll"
-                  >
-                    <BarChart2 size={22} />
-                  </button>
-                )}
               </div>
 
               {/* Responsive Emoji Picker */}
               {showEmojiPicker && (
-                <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-[95vw] max-w-[350px] z-[100] shadow-2xl rounded-2xl overflow-hidden border border-border animate-in fade-in slide-in-from-bottom-5 md:absolute md:bottom-14 md:left-0 md:translate-x-0 md:w-[350px]">
-                  <div className="bg-popover border-b border-border p-2 flex justify-end md:hidden">
-                    <button onClick={() => setShowEmojiPicker(false)} className="text-muted-foreground hover:text-foreground">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" /></svg>
+                <div className="absolute bottom-[60px] right-0 z-[100] shadow-2xl rounded-2xl overflow-hidden border border-border animate-in fade-in slide-in-from-bottom-5">
+                  {/* Mobile close button */}
+                  <div className="md:hidden bg-secondary p-2 flex justify-end">
+                    <button onClick={() => setShowEmojiPicker(false)}>
+                      <X size={20} />
                     </button>
                   </div>
                   <EmojiPicker
-                    theme="dark"
+                    theme={currentTheme?.type === 'dark' ? 'dark' : 'auto'}
                     onEmojiClick={(emojiData) => {
                       setInput((prev) => prev + emojiData.emoji);
                     }}
-                    width="100%"
-                    height={350} // Fixed height for consistency
+                    width={320}
+                    height={350}
                     lazyLoadEmojis={true}
                     searchDisabled={false}
                   />
@@ -1235,45 +1308,34 @@ export const ChatContainer = () => {
               )}
             </div>
 
-            {showStickerPicker && (
-              <div className="absolute bottom-16 left-4 z-50 shadow-2xl rounded-xl overflow-hidden border border-gray-700 bg-gray-900 p-2 w-72 h-64 overflow-y-auto">
-                {/* Sticker content kept simple for now as user focused on Emoji */}
-              </div>
-            )}
-
-
-            {input.trim() || imagePreview ? (
+            {/* Send / Mic Button */}
+            {input.trim() || imagePreview || selectedFile ? (
               <button
-                onClick={handleSendMessage}
+                type="submit"
                 disabled={isUploading}
-                className="disabled:opacity-50 transition-all"
+                className="min-w-[48px] h-12 rounded-full bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-violet-500/25 disabled:opacity-70 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
               >
                 {isUploading ? (
-                  <svg className="animate-spin h-7 w-7 text-violet-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <img
-                    src={assets.send_button}
-                    alt=""
-                    className="w-7 cursor-pointer textwh hover:scale-105 transition-transform"
-                  />
+                  <Send size={20} className="ml-0.5" />
                 )}
               </button>
             ) : (
               <button
-                onClick={startRecording}
-                disabled={isUploading}
-                className="bg-violet-600 hover:bg-violet-700 text-white p-2.5 rounded-full shadow-lg hover:scale-105 transition-transform"
+                type="button"
+                onMouseDown={startRecording}
+                onMouseUp={stopRecording}
+                onMouseLeave={cancelRecording}
+                onTouchStart={startRecording}
+                onTouchEnd={stopRecording}
+                className={`min-w-[48px] h-12 rounded-full flex items-center justify-center transition-all shadow-lg transform hover:scale-110 active:scale-95 ${isRecording ? "bg-red-500 text-white animate-pulse scale-110" : "bg-secondary text-foreground hover:bg-secondary/80 hover:text-violet-500"}`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /><line x1="8" x2="16" y1="22" y2="22" /></svg>
+                {isRecording ? <div className="w-3 h-3 bg-white rounded-sm" /> : <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" /></svg>}
               </button>
             )}
 
-            {/* Emoji Picker Toggle Button - added along with the other buttons if space permits, or inside the input container? */}
-            {/* Let's put it inside the input container for better UI */}
-          </div>
+          </form>
         )}
       </div>
 

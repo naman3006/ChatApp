@@ -437,3 +437,55 @@ export const updateGroupTheme = async (req, res) => {
         res.status(500).json({ success: false, message: "Failed to update group theme" });
     }
 };
+
+export const updateGroupEphemeralMode = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { duration } = req.body;
+        const userId = req.user._id;
+
+        const group = await Group.findById(id);
+        if (!group) return res.status(404).json({ success: false, message: "Group not found" });
+
+        if (!group.admins.includes(userId)) {
+            return res.status(403).json({ success: false, message: "Only admin can update ephemeral settings" });
+        }
+
+        group.ephemeralDuration = duration;
+        await group.save();
+
+        const populatedGroup = await Group.findById(id)
+            .populate("members", "-password")
+            .populate("admins", "-password");
+
+        // Notify via socket
+        io.to(`group_${id}`).emit("chatSettingsUpdated", {
+            chatId: id,
+            ephemeralDuration: duration,
+            type: "group"
+        });
+
+        // Add System Message
+        const updater = await User.findById(userId);
+        if (updater) {
+            const Message = (await import("../models/Message.js")).default;
+            const durationText = duration > 0
+                ? (duration === 86400 ? "24 hours" : duration === 604800 ? "7 days" : duration === 7776000 ? "90 days" : `${duration} seconds`)
+                : "Off";
+
+            const systemMsg = await Message.create({
+                senderId: userId,
+                groupId: id,
+                text: `${updater.fullName} set Disappearing Messages to ${durationText}`,
+                isSystemMessage: true,
+            });
+            await systemMsg.populate("senderId", "fullName profilePic");
+            io.to(`group_${id}`).emit("newGroupMessage", systemMsg);
+        }
+
+        res.json({ success: true, group: populatedGroup });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Failed to update ephemeral settings" });
+    }
+};

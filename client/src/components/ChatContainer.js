@@ -16,6 +16,7 @@ import CreatePollModal from "./CreatePollModal";
 import PollBubble from "./PollBubble";
 import { ThemeToggle } from "./ThemeToggle";
 import MessageBubble from "./MessageBubble";
+import ForwardModal from "./ForwardModal";
 
 export const ChatContainer = () => {
   const navigate = useNavigate();
@@ -49,6 +50,10 @@ export const ChatContainer = () => {
     updateUserTheme,
     createPoll,
     hasMore,
+    isSelectionMode,
+    selectedMessages,
+    toggleMessageSelection,
+    clearSelection
   } = useContext(ChatContext);
   const { startCall } = useContext(CallContext);
   const { authUser, onlineUsers } = useContext(AuthContext);
@@ -73,6 +78,8 @@ export const ChatContainer = () => {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+
 
   const typingTimeoutRef = useRef(null);
 
@@ -469,188 +476,212 @@ export const ChatContainer = () => {
       style={getBackgroundStyle()}
       onClick={() => { setActiveMenuId(null); setActiveReactionId(null); }}
     >
-      <div className="flex items-center gap-3 py-3 px-4 border-b border-border/5 bg-background/50 backdrop-blur-md">
-
-        {/* Mobile Back Button */}
-        <button
-          onClick={() => { setSelectedUser(null); setSelectedGroup(null); }}
-          className="md:hidden text-muted-foreground hover:text-foreground mr-2 p-1 rounded-full hover:bg-secondary/50 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-        </button>
-
-        {selectedGroup ? (
-          selectedGroup.icon ? (
-            <img
-              onClick={() => setShowGroupInfo(true)}
-              src={selectedGroup.icon}
-              alt={selectedGroup.name}
-              className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-            />
-          ) : (
-            <div
-              onClick={() => setShowGroupInfo(true)}
-              className="w-10 h-10 rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity"
-            >
-              {selectedGroup.name[0].toUpperCase()}
+      {/* Selection Header */}
+      {
+        isSelectionMode ? (
+          <div className="flex items-center gap-3 py-3 px-4 border-b border-border/5 bg-violet-900/40 backdrop-blur-md z-20">
+            <div className="flex items-center gap-4 flex-1">
+              <button onClick={clearSelection} className="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+              <span className="font-semibold text-white text-lg">{selectedMessages.length} Selected</span>
             </div>
-          )
+            <button
+              disabled={selectedMessages.length === 0}
+              onClick={() => setShowForwardModal(true)}
+              className="text-white font-medium bg-violet-600 hover:bg-violet-700 px-4 py-1.5 rounded-full flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-violet-500/20"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 17 20 12 15 7" /><path d="M4 18v-2a4 4 0 0 1 4-4h12" /></svg>
+              <span>Forward</span>
+            </button>
+          </div>
         ) : (
-          <img
-            src={selectedUser.profilePic || assets.avatar_icon}
-            alt=""
-            className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => navigate(`/user/${selectedUser._id}`)}
-          />
-        )}
-        <div className="flex-1 flex flex-col justify-center ml-1 overflow-hidden">
-          <p className={`text-base md:text-lg text-foreground flex items-center gap-2 font-semibold tracking-tight ${!selectedGroup && "cursor-pointer hover:underline"}`}
-            onClick={() => !selectedGroup && navigate(`/user/${selectedUser._id}`)}
-          >
-            {selectedGroup ? selectedGroup.name : selectedUser.fullName}
-            {!selectedGroup && onlineUsers.includes(selectedUser._id) &&
-              <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>}
-          </p>
-          {(() => {
-            const chatId = selectedGroup ? selectedGroup._id : selectedUser._id;
-            const typers = typingData[chatId] ? Array.from(typingData[chatId]) : [];
-            const otherTypers = typers.filter(id => id !== authUser._id);
+          <div className="flex items-center gap-3 py-3 px-4 border-b border-border/5 bg-background/50 backdrop-blur-md">
 
-            if (otherTypers.length > 0) {
-              let typingText = "";
-              if (selectedGroup) {
-                if (otherTypers.length === 1) {
-                  const typer = users.find(u => u._id === otherTypers[0]);
-                  typingText = `${typer ? typer.fullName.split(' ')[0] : "Someone"} is typing...`;
-                } else {
-                  typingText = "Several people are typing...";
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => { setSelectedUser(null); setSelectedGroup(null); }}
+              className="md:hidden text-muted-foreground hover:text-foreground mr-2 p-1 rounded-full hover:bg-secondary/50 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+            </button>
+
+            {selectedGroup ? (
+              selectedGroup.icon ? (
+                <img
+                  onClick={() => setShowGroupInfo(true)}
+                  src={selectedGroup.icon}
+                  alt={selectedGroup.name}
+                  className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                />
+              ) : (
+                <div
+                  onClick={() => setShowGroupInfo(true)}
+                  className="w-10 h-10 rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity"
+                >
+                  {selectedGroup.name[0].toUpperCase()}
+                </div>
+              )
+            ) : (
+              <img
+                src={selectedUser.profilePic || assets.avatar_icon}
+                alt=""
+                className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate(`/user/${selectedUser._id}`)}
+              />
+            )}
+            <div className="flex-1 flex flex-col justify-center ml-1 overflow-hidden">
+              <p className={`text-base md:text-lg text-foreground flex items-center gap-2 font-semibold tracking-tight ${!selectedGroup && "cursor-pointer hover:underline"}`}
+                onClick={() => !selectedGroup && navigate(`/user/${selectedUser._id}`)}
+              >
+                {selectedGroup ? selectedGroup.name : selectedUser.fullName}
+                {!selectedGroup && onlineUsers.includes(selectedUser._id) &&
+                  <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>}
+              </p>
+              {(() => {
+                const chatId = selectedGroup ? selectedGroup._id : selectedUser._id;
+                const typers = typingData[chatId] ? Array.from(typingData[chatId]) : [];
+                const otherTypers = typers.filter(id => id !== authUser._id);
+
+                if (otherTypers.length > 0) {
+                  let typingText = "";
+                  if (selectedGroup) {
+                    if (otherTypers.length === 1) {
+                      const typer = users.find(u => u._id === otherTypers[0]);
+                      typingText = `${typer ? typer.fullName.split(' ')[0] : "Someone"} is typing...`;
+                    } else {
+                      typingText = "Several people are typing...";
+                    }
+                  } else {
+                    typingText = "typing...";
+                  }
+
+                  return (
+                    <p className="text-[10px] md:text-xs text-green-500 font-medium animate-pulse truncate">
+                      {typingText}
+                    </p>
+                  );
                 }
-              } else {
-                typingText = "typing...";
-              }
 
-              return (
-                <p className="text-[10px] md:text-xs text-green-500 font-medium animate-pulse truncate">
-                  {typingText}
-                </p>
-              );
-            }
+                if (selectedGroup) {
+                  return (
+                    <p className="text-[10px] md:text-xs text-muted-foreground cursor-pointer hover:text-foreground truncate" onClick={() => setShowGroupInfo(true)}>
+                      {selectedGroup.members.length} members
+                    </p>
+                  );
+                }
 
-            if (selectedGroup) {
-              return (
-                <p className="text-[10px] md:text-xs text-muted-foreground cursor-pointer hover:text-foreground truncate" onClick={() => setShowGroupInfo(true)}>
-                  {selectedGroup.members.length} members
-                </p>
-              );
-            }
+                if (!onlineUsers.includes(selectedUser._id) && selectedUser.lastSeen) {
+                  // Custom format to match screenshot: "Last seen at 21:02 on 12/01/2026"
+                  const date = new Date(selectedUser.lastSeen);
+                  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                  const day = date.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  return (
+                    <p className="text-[10px] text-muted-foreground truncate leading-tight">
+                      Last seen at {time} on {day}
+                    </p>
+                  );
+                } else if (onlineUsers.includes(selectedUser._id)) {
+                  return <p className="text-[10px] text-green-500 font-medium">Online</p>;
+                }
 
-            if (!onlineUsers.includes(selectedUser._id) && selectedUser.lastSeen) {
-              // Custom format to match screenshot: "Last seen at 21:02 on 12/01/2026"
-              const date = new Date(selectedUser.lastSeen);
-              const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-              const day = date.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' });
-              return (
-                <p className="text-[10px] text-muted-foreground truncate leading-tight">
-                  Last seen at {time} on {day}
-                </p>
-              );
-            } else if (onlineUsers.includes(selectedUser._id)) {
-              return <p className="text-[10px] text-green-500 font-medium">Online</p>;
-            }
+                return <p className="text-[10px] text-muted-foreground">Offline</p>;
+              })()}
+            </div>
 
-            return <p className="text-[10px] text-muted-foreground">Offline</p>;
-          })()}
-        </div>
-
-        {!selectedGroup && (
-          <>
-            <button
-              onClick={() => startCall(selectedUser._id, selectedUser.fullName, false)}
-              className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-1"
-              title="Audio Call"
-            >
-              <Phone size={20} />
-            </button>
-            <button
-              onClick={() => startCall(selectedUser._id, selectedUser.fullName, true)}
-              className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
-              title="Video Call"
-            >
-              <Video size={20} />
-            </button>
-            <button
-              onClick={() => setShowThemeSelector(true)}
-              className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
-              title="Change Theme"
-            >
-              <Palette size={20} />
-            </button>
-            {/* <div className="mr-2">
+            {!selectedGroup && (
+              <>
+                <button
+                  onClick={() => startCall(selectedUser._id, selectedUser.fullName, false)}
+                  className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-1"
+                  title="Audio Call"
+                >
+                  <Phone size={20} />
+                </button>
+                <button
+                  onClick={() => startCall(selectedUser._id, selectedUser.fullName, true)}
+                  className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
+                  title="Video Call"
+                >
+                  <Video size={20} />
+                </button>
+                <button
+                  onClick={() => setShowThemeSelector(true)}
+                  className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
+                  title="Change Theme"
+                >
+                  <Palette size={20} />
+                </button>
+                {/* <div className="mr-2">
               <ThemeToggle />
             </div> */}
-          </>
-        )}
+              </>
+            )}
 
-        {/* Group Theme Button - Only Admin? Or view only? Let's allow view, but only admin edit in selector */}
-        {selectedGroup && selectedGroup.admins.some(adm => adm._id === authUser._id) && (
-          <button
-            onClick={() => setShowThemeSelector(true)}
-            className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
-            title="Change Group Theme"
-          >
-            <Palette size={20} />
-          </button>
-        )}
+            {/* Group Theme Button - Only Admin? Or view only? Let's allow view, but only admin edit in selector */}
+            {selectedGroup && selectedGroup.admins.some(adm => adm._id === authUser._id) && (
+              <button
+                onClick={() => setShowThemeSelector(true)}
+                className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-2"
+                title="Change Group Theme"
+              >
+                <Palette size={20} />
+              </button>
+            )}
 
-        <button
-          onClick={() => setShowPinnedMessages(!showPinnedMessages)}
-          className={`p-2 rounded-full transition-colors mr-2 ${showPinnedMessages ? 'bg-violet-600 text-white' : 'hover:bg-secondary text-muted-foreground hover:text-foreground'}`}
-          title="Pinned Messages"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
-        </button>
+            <button
+              onClick={() => setShowPinnedMessages(!showPinnedMessages)}
+              className={`p-2 rounded-full transition-colors mr-2 ${showPinnedMessages ? 'bg-violet-600 text-white' : 'hover:bg-secondary text-muted-foreground hover:text-foreground'}`}
+              title="Pinned Messages"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+            </button>
 
-        {/* <img
+            {/* <img
           onClick={() => { setSelectedUser(null); setSelectedGroup(null); }}
           src={assets.arrow_icon}
           alt=""
           className="md:hidden max-w-7 cursor-pointer hover:scale-110 transition-transform"
         /> */}
-        {/* Info Icon for Group */}
-        {selectedGroup && (
-          <button onClick={() => setShowGroupInfo(true)} className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-full hover:bg-secondary">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="16" y2="12" /><line x1="12" x2="12.01" y1="8" y2="8" /></svg>
-          </button>
-        )}
-      </div>
+            {/* Info Icon for Group */}
+            {selectedGroup && (
+              <button onClick={() => setShowGroupInfo(true)} className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-full hover:bg-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="16" y2="12" /><line x1="12" x2="12.01" y1="8" y2="8" /></svg>
+              </button>
+            )}
+          </div>
+        )
+      }
 
       {/* Sticky Pinned Message */}
-      {messages.some(m => m.pinned) && (
-        <div className="z-10 bg-gray-900/95 backdrop-blur-md border-b border-gray-800 px-4 py-2 flex items-center justify-between shadow-lg cursor-pointer hover:bg-gray-800/90 transition-colors"
-          onClick={() => handleScrollToMessage(messages.filter(m => m.pinned).slice(-1)[0]._id)}
-        >
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="bg-violet-600/20 p-1.5 rounded-full text-violet-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+      {
+        messages.some(m => m.pinned) && (
+          <div className="z-10 bg-gray-900/95 backdrop-blur-md border-b border-gray-800 px-4 py-2 flex items-center justify-between shadow-lg cursor-pointer hover:bg-gray-800/90 transition-colors"
+            onClick={() => handleScrollToMessage(messages.filter(m => m.pinned).slice(-1)[0]._id)}
+          >
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="bg-violet-600/20 p-1.5 rounded-full text-violet-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">Pinned Message</span>
+                <p className="text-sm text-gray-200 truncate max-w-[200px] sm:max-w-md">
+                  {(() => {
+                    const lastPinned = messages.filter(m => m.pinned).slice(-1)[0];
+                    if (lastPinned.text) return lastPinned.text;
+                    if (lastPinned.image) return "Image Attachment";
+                    if (lastPinned.audio) return "Voice Message";
+                    return "Message";
+                  })()}
+                </p>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">Pinned Message</span>
-              <p className="text-sm text-gray-200 truncate max-w-[200px] sm:max-w-md">
-                {(() => {
-                  const lastPinned = messages.filter(m => m.pinned).slice(-1)[0];
-                  if (lastPinned.text) return lastPinned.text;
-                  if (lastPinned.image) return "Image Attachment";
-                  if (lastPinned.audio) return "Voice Message";
-                  return "Message";
-                })()}
-              </p>
+            <div className="text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
             </div>
           </div>
-          <div className="text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-          </div>
-        </div>
-      )}
+        )
+      }
       {/* Messages Area - Flex Grow to fill space */}
       <div
         ref={containerRef}
@@ -712,9 +743,13 @@ export const ChatContainer = () => {
                     cancelEditing={cancelEditing}
                     handleUpdateMessage={handleUpdateMessage}
                     firstUnseenMsgRef={firstUnseenMsgRef}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedMessages.includes(msg._id)}
+                    toggleSelection={toggleMessageSelection}
                   />
                 );
-              });
+              })
+
             })()}
             <div ref={scrollEnd} className="h-1"></div>
           </>
@@ -756,6 +791,11 @@ export const ChatContainer = () => {
         )
       }
 
+
+      {/* Forward Modal */}
+      {showForwardModal && (
+        <ForwardModal onClose={() => setShowForwardModal(false)} />
+      )}
 
       {/* Group Info Modal */}
       {
@@ -1120,22 +1160,26 @@ export const ChatContainer = () => {
         )}
       </div>
 
-      {showThemeSelector && (
-        <ThemeSelector
-          onClose={() => setShowThemeSelector(false)}
-          onSelect={handleThemeSelect}
-          currentTheme={currentTheme}
-        />
-      )}
+      {
+        showThemeSelector && (
+          <ThemeSelector
+            onClose={() => setShowThemeSelector(false)}
+            onSelect={handleThemeSelect}
+            currentTheme={currentTheme}
+          />
+        )
+      }
 
-      {showPollModal && (
-        <CreatePollModal
-          isOpen={showPollModal}
-          onClose={() => setShowPollModal(false)}
-          onCreate={(pollData) => createPoll({ ...pollData, groupId: selectedGroup._id })}
-        />
-      )}
-    </div>
+      {
+        showPollModal && (
+          <CreatePollModal
+            isOpen={showPollModal}
+            onClose={() => setShowPollModal(false)}
+            onCreate={(pollData) => createPoll({ ...pollData, groupId: selectedGroup._id })}
+          />
+        )
+      }
+    </div >
   ) : (
     <div className="hidden md:flex flex-col flex-1 items-center justify-center p-4 text-center">
       <div className="bg-card/50 p-6 rounded-3xl flex flex-col items-center max-w-md text-center border border-border shadow-2xl backdrop-blur-sm">

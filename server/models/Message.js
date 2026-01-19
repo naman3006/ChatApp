@@ -29,6 +29,8 @@ const messageSchema = new mongoose.Schema(
     seen: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
     isSystemMessage: { type: Boolean, default: false },
+    isForwarded: { type: Boolean, default: false },
+    expiresAt: { type: Date, default: null }, // For ephemeral messages
     reactions: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -42,6 +44,9 @@ const messageSchema = new mongoose.Schema(
 // Indexes for performance
 messageSchema.index({ groupId: 1, createdAt: -1 });
 messageSchema.index({ senderId: 1, receiverId: 1, createdAt: -1 });
+messageSchema.index({ receiverId: 1, senderId: 1, createdAt: -1 });
+// TTL Index for ephemeral messages
+messageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 messageSchema.index({ receiverId: 1, senderId: 1, createdAt: -1 });
 
 const Message = mongoose.model("Message", messageSchema);

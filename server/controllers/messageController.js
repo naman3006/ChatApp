@@ -1,5 +1,7 @@
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import Group from "../models/Group.js";
+import Conversation from "../models/Conversation.js";
 import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../lib/socket.js";
 
@@ -238,6 +240,27 @@ export const sendMessage = async (req, res) => {
       }
     }
 
+    let expiresAt = null;
+    let duration = 0;
+
+    if (groupId) {
+      const group = await Group.findById(groupId);
+      if (group && group.ephemeralDuration > 0) {
+        duration = group.ephemeralDuration;
+      }
+    } else {
+      const conversation = await Conversation.findOne({
+        participants: { $all: [senderId, receiverId] }
+      });
+      if (conversation && conversation.ephemeralDuration > 0) {
+        duration = conversation.ephemeralDuration;
+      }
+    }
+
+    if (duration > 0) {
+      expiresAt = new Date(Date.now() + duration * 1000);
+    }
+
     let imageUrl;
     if (image) {
       const uploadResponse = await cloudinary.uploader.upload(image);
@@ -260,6 +283,7 @@ export const sendMessage = async (req, res) => {
         text,
         image: imageUrl,
         audio: audioUrl,
+        expiresAt,
       });
 
       // Populate sender info for immediate display
@@ -276,6 +300,7 @@ export const sendMessage = async (req, res) => {
         text,
         image: imageUrl,
         audio: audioUrl,
+        expiresAt,
       });
 
       // Emit to Receiver's Room (all their tabs)
@@ -541,6 +566,81 @@ export const unpinMessage = async (req, res) => {
     res.status(200).json({ success: true, message: updatedMessage });
   } catch (error) {
     console.log("Error in unpinMessage:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const forwardMessages = async (req, res) => {
+  try {
+    const { messageIds, recipientIds } = req.body;
+    const senderId = req.user._id;
+
+    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No messages selected" });
+    }
+    if (!recipientIds || !Array.isArray(recipientIds) || recipientIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No recipients selected" });
+    }
+
+    const messagesToForward = await Message.find({ _id: { $in: messageIds } });
+
+    // Iterate through each recipient (User or Group)
+    for (const recipientId of recipientIds) {
+      // Determine if recipient is a Group or User (naive check: look for group, if not assume user)
+      const groupValidator = await Group.findById(recipientId);
+      const isGroup = !!groupValidator;
+
+      let duration = 0;
+      let expiresAt = null;
+
+      if (isGroup) {
+        if (groupValidator.ephemeralDuration > 0) duration = groupValidator.ephemeralDuration;
+      } else {
+        const conversation = await Conversation.findOne({
+          participants: { $all: [senderId, recipientId] }
+        });
+        if (conversation && conversation.ephemeralDuration > 0) duration = conversation.ephemeralDuration;
+      }
+
+      if (duration > 0) expiresAt = new Date(Date.now() + duration * 1000);
+
+      // Create new messages for this recipient
+      const newMessages = await Promise.all(messagesToForward.map(async (originalMsg) => {
+        const msgData = {
+          senderId,
+          text: originalMsg.text,
+          image: originalMsg.image,
+          audio: originalMsg.audio,
+          isForwarded: true,
+          expiresAt
+        };
+
+        if (isGroup) {
+          msgData.groupId = recipientId;
+        } else {
+          msgData.receiverId = recipientId;
+        }
+
+        const newMsg = await Message.create(msgData);
+        // Populate for minimal display requirement if needed immediately
+        return newMsg.populate('senderId', 'fullName profilePic');
+      }));
+
+      // Emit events
+      for (const newMsg of newMessages) {
+        if (isGroup) {
+          io.to(`group_${recipientId}`).emit("newGroupMessage", newMsg);
+        } else {
+          io.to(recipientId).emit("newMessage", newMsg);
+          io.to(senderId).emit("newMessage", newMsg);
+        }
+      }
+    }
+
+    res.json({ success: true, message: "Messages forwarded successfully" });
+
+  } catch (error) {
+    console.log("Error in forwardMessages:", error.message);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

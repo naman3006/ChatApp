@@ -32,7 +32,11 @@ const MessageBubble = ({
     setEditText,
     cancelEditing,
     handleUpdateMessage,
-    firstUnseenMsgRef
+
+    firstUnseenMsgRef,
+    isSelectionMode,
+    isSelected,
+    toggleSelection
 }) => {
 
     if (msg.isSystemMessage) {
@@ -87,8 +91,22 @@ const MessageBubble = ({
             <div
                 id={`msg-${msg._id}`}
                 ref={isFirstUnseen ? firstUnseenMsgRef : null}
-                className={`flex items-end gap-3 group ${isMyMessage ? "justify-end" : "justify-start"}`}
+                className={`flex items-end gap-3 group ${isMyMessage ? "justify-end" : "justify-start"} ${isSelectionMode ? "cursor-pointer" : ""}`}
+                onClick={(e) => {
+                    if (isSelectionMode) {
+                        e.stopPropagation();
+                        toggleSelection(msg._id);
+                    }
+                }}
             >
+                {/* Selection Checkbox */}
+                {isSelectionMode && (
+                    <div className={`flex items-center justify-center p-2 order-first`}>
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${isSelected ? "bg-violet-500 border-violet-500" : "border-gray-500 bg-transparent"}`}>
+                            {isSelected && <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white"><polyline points="20 6 9 17 4 12" /></svg>}
+                        </div>
+                    </div>
+                )}
                 {/* Avatar (Left side for others) */}
                 {!isMyMessage && (
                     <div className="chat-avatar flex flex-col items-center mb-1">
@@ -113,6 +131,14 @@ const MessageBubble = ({
                         onTouchStart={() => handleTouchStart(msg._id)}
                         onTouchEnd={handleTouchEnd}
                     >
+                        {/* Forwarded Label */}
+                        {msg.isForwarded && (
+                            <div className={`flex items-center gap-1 mb-1 text-[10px] text-gray-400 italic ${!isMyMessage ? "ml-1" : "mr-1 self-end"}`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 17 20 12 15 7" /><path d="M4 18v-2a4 4 0 0 1 4-4h12" /></svg>
+                                Forwarded
+                            </div>
+                        )}
+
                         {/* Message Bubble / Content */}
                         {msg.image && (
                             <div className="flex flex-col">
@@ -249,8 +275,8 @@ const MessageBubble = ({
                                 </div>
                             </div>
 
-                            {/* Menu Button (Only for own messages) */}
-                            {isMyMessage && (
+                            {/* Menu Button */}
+                            {!isSelectionMode && (
                                 <div className="relative">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); toggleMenu(msg._id); }}
@@ -272,16 +298,28 @@ const MessageBubble = ({
                     md:absolute md:bottom-full md:right-0 md:w-40 md:mb-2 md:left-auto md:top-auto md:inset-auto md:animate-in md:fade-in md:zoom-in-95 md:origin-bottom-right md:z-50
                   `}>
                                                 <button
-                                                    onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
-                                                    className={`w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted flex items-center gap-3 md:gap-2 active:bg-muted transition-colors ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
+                                                    onClick={(e) => { e.stopPropagation(); toggleSelection(msg._id); setActiveMenuId(null); }}
+                                                    className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted flex items-center gap-3 md:gap-2 active:bg-muted transition-colors"
                                                 >
                                                     <span className="md:hidden p-2 bg-muted rounded-full text-violet-400">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 17 20 12 15 7" /><path d="M4 18v-2a4 4 0 0 1 4-4h12" /></svg>
                                                     </span>
-                                                    {msg.pinned ? "Unpin Message" : "Pin Message"}
+                                                    Forward
                                                 </button>
 
-                                                {!msg.image && !msg.audio && (!msg.text || !msg.text.match(/^(Audio|Video) Call ended •/)) && (
+                                                {isMyMessage && (
+                                                    <button
+                                                        onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
+                                                        className={`w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted flex items-center gap-3 md:gap-2 active:bg-muted transition-colors ${msg.pinned && msg.pinnedBy && msg.pinnedBy._id !== authUser._id && 'hidden'}`}
+                                                    >
+                                                        <span className="md:hidden p-2 bg-muted rounded-full text-violet-400">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="17" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" /></svg>
+                                                        </span>
+                                                        {msg.pinned ? "Unpin Method" : "Pin Message"}
+                                                    </button>
+                                                )}
+
+                                                {isMyMessage && !msg.image && !msg.audio && (!msg.text || !msg.text.match(/^(Audio|Video) Call ended •/)) && (
                                                     <button onClick={() => startEditing(msg)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted border-t border-border active:bg-muted flex items-center gap-3 md:gap-2">
                                                         <span className="md:hidden p-2 bg-gray-800 rounded-full text-blue-400">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
@@ -290,23 +328,26 @@ const MessageBubble = ({
                                                     </button>
                                                 )}
 
-                                                <button onClick={() => handleDeleteMessage(msg._id)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-red-500 hover:bg-muted border-t border-border active:bg-muted flex items-center gap-3 md:gap-2">
-                                                    <span className="md:hidden p-2 bg-red-500/10 rounded-full text-red-400">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                                                    </span>
-                                                    Delete Message
-                                                </button>
+                                                {isMyMessage && (
+                                                    <button onClick={() => handleDeleteMessage(msg._id)} className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-red-500 hover:bg-muted border-t border-border active:bg-muted flex items-center gap-3 md:gap-2">
+                                                        <span className="md:hidden p-2 bg-red-500/10 rounded-full text-red-400">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                                                        </span>
+                                                        Delete Message
+                                                    </button>
+                                                )}
                                             </div>
                                         </>
                                     )}
                                 </div>
+
                             )}
                         </div>
-                    </div>
+                    </div >
 
-                </div>
-            </div>
-        </React.Fragment>
+                </div >
+            </div >
+        </React.Fragment >
     );
 };
 

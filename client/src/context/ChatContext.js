@@ -12,6 +12,9 @@ export const ChatProvider = ({ children }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null); // New Group State
   const [unseenMessages, setUnseenMessages] = useState(null);
+  const [currentEphemeralDuration, setCurrentEphemeralDuration] = useState(0); // 0 = off
+  const [selectedMessages, setSelectedMessages] = useState([]); // Array of message IDs
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [typingData, setTypingData] = useState({}); // { [chatId]: Set<userId> }
   const [hasMore, setHasMore] = useState(false); // Pagination state
 
@@ -322,6 +325,16 @@ export const ChatProvider = ({ children }) => {
         return { ...prev, [chatId]: new Set(currentTypers) };
       });
     });
+
+    socket.on("chatSettingsUpdated", ({ chatId, ephemeralDuration, type }) => {
+      // Check if this update applies to current chat
+      if (type === 'group' && selectedGroup && selectedGroup._id === chatId) {
+        setCurrentEphemeralDuration(ephemeralDuration);
+        setSelectedGroup(prev => ({ ...prev, ephemeralDuration })); // Update local group obj
+      } else if (type === 'user' && selectedUser && selectedUser._id === chatId) {
+        setCurrentEphemeralDuration(ephemeralDuration);
+      }
+    });
   };
 
   const sendTyping = (chatId, isGroup) => {
@@ -611,6 +624,38 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const toggleEphemeralMode = async (partnerId, duration) => {
+    try {
+      const { data } = await axios.put(`/conversations/ephemeral/${partnerId}`, { duration });
+      if (data.success) {
+        setCurrentEphemeralDuration(duration);
+        toast.success(`Disappearing messages set to ${duration ? "ON" : "OFF"}`);
+        return true;
+      }
+    } catch (error) {
+      toast.error("Failed to update settings");
+      return false;
+    }
+  };
+
+  const updateGroupEphemeralMode = async (groupId, duration) => {
+    try {
+      const { data } = await axios.put(`/groups/${groupId}/ephemeral`, { duration });
+      if (data.success) {
+        setGroups((prev) => prev.map(g => g._id === groupId ? data.group : g));
+        if (selectedGroup?._id === groupId) {
+          setSelectedGroup(data.group);
+          setCurrentEphemeralDuration(duration);
+        }
+        toast.success(`Group disappearing messages updated`);
+        return true;
+      }
+    } catch (error) {
+      toast.error("Failed to update settings");
+      return false;
+    }
+  };
+
   const createPoll = async (pollData) => {
     try {
       const { data } = await axios.post("/polls/create", pollData);
@@ -638,8 +683,53 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const toggleMessageSelection = (messageId) => {
+    setSelectedMessages(prev => {
+      const isSelected = prev.includes(messageId);
+      const newSelection = isSelected ? prev.filter(id => id !== messageId) : [...prev, messageId];
+      if (newSelection.length === 0) setIsSelectionMode(false);
+      else setIsSelectionMode(true);
+      return newSelection;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedMessages([]);
+    setIsSelectionMode(false);
+  };
+
+  const forwardMessages = async (recipientIds) => {
+    try {
+      if (selectedMessages.length === 0) return;
+      const { data } = await axios.post('/messages/forward', { messageIds: selectedMessages, recipientIds });
+      if (data.success) {
+        toast.success("Messages forwarded");
+        clearSelection();
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to forward messages");
+      return false;
+    }
+  };
+
   useEffect(() => {
     subscribeMessages();
+
+    // Reset or fetch ephemeral settings when selection changes
+    if (selectedGroup) {
+      setCurrentEphemeralDuration(selectedGroup.ephemeralDuration || 0);
+    } else if (selectedUser) {
+      // Fetch 1:1 settings
+      axios.get(`/conversations/ephemeral/${selectedUser._id}`)
+        .then(({ data }) => {
+          if (data.success) setCurrentEphemeralDuration(data.ephemeralDuration);
+        })
+        .catch(err => console.log("Failed to fetch settings", err));
+    } else {
+      setCurrentEphemeralDuration(0);
+    }
+
     return () => unsubscribeFromMessages();
   }, [socket, selectedUser, selectedGroup, users]);
 
@@ -678,13 +768,21 @@ export const ChatProvider = ({ children }) => {
     reportUser,
     updateGroupTheme,
     updateUserTheme,
+    toggleEphemeralMode,
+    updateGroupEphemeralMode,
+    currentEphemeralDuration,
     createPoll,
     votePoll,
     typingData,
     sendTyping,
     sendStopTyping,
     isUsersLoading,
-    isMessagesLoading
+    isMessagesLoading,
+    selectedMessages,
+    isSelectionMode,
+    toggleMessageSelection,
+    clearSelection,
+    forwardMessages
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

@@ -13,7 +13,8 @@ const SettingsPage = () => {
         ghostMode: false,
         lastSeen: true,
         readReceipts: true,
-        undoWindow: 5
+        undoWindow: 5,
+        defaultEphemeralDuration: 0
     });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -51,13 +52,13 @@ const SettingsPage = () => {
     }
 
     return (
-        <div className="min-h-screen w-full bg-background relative overflow-hidden flex items-center justify-center p-4">
+        <div className="min-h-screen w-full bg-background relative overflow-hidden flex items-center justify-center p-4" >
 
             {/* Ambient Background */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            < div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none" >
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-violet-900/20 rounded-full blur-[120px] animate-pulse"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px] animate-pulse delay-1000"></div>
-            </div>
+            </div >
 
             <div className="bg-card/60 backdrop-blur-2xl border border-border rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative z-10 flex flex-col max-h-[90vh]">
 
@@ -177,6 +178,34 @@ const SettingsPage = () => {
                             </div>
                         </div>
 
+                        {/* Default Disappearing Messages */}
+                        <div className="bg-secondary/30 border border-border rounded-2xl p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-gray-800 rounded-lg text-violet-400">
+                                    <Clock size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-foreground font-medium text-base">Default Message Timer</p>
+                                    <p className="text-muted-foreground text-xs mt-0.5">Start new chats with disappearing messages set to</p>
+                                </div>
+                            </div>
+                            <div className="relative">
+                                <select
+                                    value={privacy.defaultEphemeralDuration || 0}
+                                    onChange={(e) => setPrivacy(prev => ({ ...prev, defaultEphemeralDuration: Number(e.target.value) }))}
+                                    className="appearance-none bg-secondary text-foreground text-sm rounded-lg pl-3 pr-8 py-2 outline-none border border-border focus:border-violet-500 cursor-pointer hover:bg-secondary/80 transition-colors"
+                                >
+                                    <option value={0}>Off</option>
+                                    <option value={86400}>24 Hours</option>
+                                    <option value={604800}>7 Days</option>
+                                    <option value={7776000}>90 Days</option>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     {/* Developer Section */}
@@ -209,7 +238,7 @@ const SettingsPage = () => {
                 </div>
 
             </div>
-        </div>
+        </div >
     );
 };
 

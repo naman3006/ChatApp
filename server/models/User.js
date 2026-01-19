@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
         lastSeen: { type: Boolean, default: true },
         readReceipts: { type: Boolean, default: true },
         undoWindow: { type: Number, default: 5 }, // Minutes
+        defaultEphemeralDuration: { type: Number, default: 0 }, // 0 = Off
     },
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     chatThemes: {

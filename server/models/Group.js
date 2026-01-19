@@ -21,6 +21,10 @@ const groupSchema = new mongoose.Schema(
             value: { type: String, default: '' }, // CSS Color or Image URL
             id: { type: String, default: 'default' } // 'default', 'custom', or preset ID
         },
+        ephemeralDuration: {
+            type: Number,
+            default: 0, // 0 means off
+        },
     },
     { timestamps: true }
 );

@@ -24,7 +24,3 @@ statusSchema.index({ userId: 1 });
 
 const Status = mongoose.model("Status", statusSchema);
 export default Status;
-
-
-
-

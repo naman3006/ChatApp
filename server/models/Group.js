@@ -25,6 +25,7 @@ const groupSchema = new mongoose.Schema(
             type: Number,
             default: 0, // 0 means off
         },
+        inviteCode: { type: String, unique: true, sparse: true },
     },
     { timestamps: true }
 );

@@ -489,3 +489,124 @@ export const updateGroupEphemeralMode = async (req, res) => {
         res.status(500).json({ success: false, message: "Failed to update ephemeral settings" });
     }
 };
+
+import crypto from "crypto";
+
+export const generateInviteCode = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user._id;
+
+        const group = await Group.findById(id);
+        if (!group) return res.status(404).json({ success: false, message: "Group not found" });
+
+        if (!group.admins.includes(userId)) {
+            return res.status(403).json({ success: false, message: "Only admin can generate invite link" });
+        }
+
+        const inviteCode = crypto.randomBytes(4).toString("hex") + "-" + crypto.randomBytes(2).toString("hex");
+        group.inviteCode = inviteCode;
+        await group.save();
+
+        res.json({ success: true, inviteCode });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Failed to generate invite code" });
+    }
+};
+
+export const revokeInviteCode = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user._id;
+
+        const group = await Group.findById(id);
+        if (!group) return res.status(404).json({ success: false, message: "Group not found" });
+
+        if (!group.admins.includes(userId)) {
+            return res.status(403).json({ success: false, message: "Only admin can revoke invite link" });
+        }
+
+        group.inviteCode = undefined;
+        await group.save();
+
+        res.json({ success: true, message: "Invite link revoked" });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Failed to revoke invite code" });
+    }
+};
+
+export const getGroupByCode = async (req, res) => {
+    try {
+        const { code } = req.params;
+        const group = await Group.findOne({ inviteCode: code }).select("name icon members");
+
+        if (!group) return res.status(404).json({ success: false, message: "Invalid invite link" });
+
+        res.json({
+            success: true, group: {
+                _id: group._id,
+                name: group.name,
+                icon: group.icon,
+                memberCount: group.members.length
+            }
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Failed to get group info" });
+    }
+};
+
+export const joinGroupViaCode = async (req, res) => {
+    try {
+        const { code } = req.body;
+        const userId = req.user._id;
+
+        const group = await Group.findOne({ inviteCode: code });
+        if (!group) return res.status(404).json({ success: false, message: "Invalid invite link" });
+
+        if (group.members.includes(userId)) {
+            // Already a member, just return success + groupId so frontend can navigate
+            return res.json({ success: true, groupId: group._id, alreadyMember: true });
+        }
+
+        group.members.push(userId);
+        await group.save();
+
+        // Standard Join Logic (Socket + System Msg)
+        const updatedGroup = await Group.findById(group._id)
+            .populate("members", "-password")
+            .populate("admins", "-password");
+
+        const socketIds = userSocketMap[userId];
+        if (socketIds) {
+            socketIds.forEach(socketId => {
+                const socket = io.sockets.sockets.get(socketId);
+                if (socket) {
+                    socket.join(`group_${group._id}`);
+                    io.to(socketId).emit("groupAdded", updatedGroup);
+                }
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (user) {
+            const Message = (await import("../models/Message.js")).default;
+            const systemMsg = await Message.create({
+                senderId: userId,
+                groupId: group._id,
+                text: `${user.fullName} joined via invite link`,
+                isSystemMessage: true,
+            });
+            await systemMsg.populate("senderId", "fullName profilePic");
+            io.to(`group_${group._id}`).emit("newGroupMessage", systemMsg);
+        }
+
+        res.json({ success: true, groupId: group._id });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Failed to join group" });
+    }
+};

@@ -1,5 +1,4 @@
-import "./App.css";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -12,8 +11,21 @@ import VideoCall from "./components/VideoCall";
 import CallNotification from "./components/CallNotification";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import JoinPage from "./pages/JoinPage";
 
 import { Loader } from "lucide-react";
+
+// Wrapper to redirect authenticated users
+const AuthRedirect = ({ children }) => {
+  const { authUser } = useContext(AuthContext);
+  const location = useLocation();
+
+  if (authUser) {
+    return <Navigate to={location.state?.from || "/"} replace />;
+  }
+
+  return children;
+};
 
 function App() {
   const { authUser, isCheckingAuth } = useContext(AuthContext);
@@ -38,15 +50,15 @@ function App() {
         />
         <Route
           path="/login"
-          element={!authUser ? <LoginPage /> : <Navigate to="/" />}
+          element={<AuthRedirect><LoginPage /></AuthRedirect>}
         />
         <Route
           path="/forgot-password"
-          element={!authUser ? <ForgotPasswordPage /> : <Navigate to="/" />}
+          element={<AuthRedirect><ForgotPasswordPage /></AuthRedirect>}
         />
         <Route
           path="/reset-password/:token"
-          element={!authUser ? <ResetPasswordPage /> : <Navigate to="/" />}
+          element={<AuthRedirect><ResetPasswordPage /></AuthRedirect>}
         />
         <Route
           path="/profile"
@@ -59,6 +71,10 @@ function App() {
         <Route
           path="/user/:userId"
           element={authUser ? <UserProfilePage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/invite/:code"
+          element={<JoinPage />}
         />
       </Routes>
     </div>

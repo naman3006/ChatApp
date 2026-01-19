@@ -656,6 +656,62 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Invite Links
+  const generateInvite = async (groupId) => {
+    try {
+      const { data } = await axios.post(`/groups/${groupId}/invite`);
+      if (data.success) {
+        return data.inviteCode;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to generate invite");
+      return null;
+    }
+  };
+
+  const revokeInvite = async (groupId) => {
+    try {
+      const { data } = await axios.delete(`/groups/${groupId}/invite`);
+      if (data.success) {
+        toast.success("Invite link revoked");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to revoke invite");
+      return false;
+    }
+  };
+
+  const joinGroupViaCode = async (code) => {
+    try {
+      const { data } = await axios.post(`/groups/join/code`, { code });
+      if (data.success) {
+        if (data.alreadyMember) {
+          toast.success("You are already a member");
+        } else {
+          toast.success("Joined group successfully");
+          await getGroups(); // Refresh groups list
+        }
+        return data.groupId;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to join group");
+      return null;
+    }
+  };
+
+  const getGroupInfoByCode = async (code) => {
+    try {
+      const { data } = await axios.get(`/groups/invite/${code}`);
+      if (data.success) {
+        return data.group;
+      }
+    } catch (error) {
+      // Don't toast here, page will handle error display
+      return null;
+    }
+  };
+
   const createPoll = async (pollData) => {
     try {
       const { data } = await axios.post("/polls/create", pollData);
@@ -740,6 +796,10 @@ export const ChatProvider = ({ children }) => {
     selectedGroup,
     setSelectedUser: (user) => { setSelectedUser(user); setSelectedGroup(null); },
     setSelectedGroup: (group) => { setSelectedGroup(group); setSelectedUser(null); },
+    generateInvite,
+    revokeInvite,
+    joinGroupViaCode,
+    getGroupInfoByCode,
     messages,
     getMessages,
     sendMessage,

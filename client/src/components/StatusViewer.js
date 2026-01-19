@@ -14,7 +14,7 @@ const StatusViewer = ({ startUserId, onClose }) => {
     const [currentStatusIndex, setCurrentStatusIndex] = useState(0);
     const [progress, setProgress] = useState(0);
     const [elapsedTime, setElapsedTime] = useState(0);
-    const [totalDuration, setTotalDuration] = useState(0);
+    // const [totalDuration, setTotalDuration] = useState(0); // Unused
     const [isVideoLoading, setIsVideoLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(false);
 
@@ -64,7 +64,7 @@ const StatusViewer = ({ startUserId, onClose }) => {
 
         setProgress(0);
         setElapsedTime(0);
-        setTotalDuration(duration / 1000); // Default 5s
+        // setTotalDuration(duration / 1000); // Default 5s
         setIsVideoLoading(true); // Reset loading state
         setIsMuted(!!currentStatus.music?.url); // Initialize mute based on music
         let frameId;
@@ -92,7 +92,7 @@ const StatusViewer = ({ startUserId, onClose }) => {
         const handleAudioUpdate = () => {
             if (audio.duration) {
                 setElapsedTime(audio.currentTime);
-                setTotalDuration(audio.duration);
+                // setTotalDuration(audio.duration);
                 setProgress((audio.currentTime / audio.duration) * 100);
             }
         };
@@ -105,7 +105,7 @@ const StatusViewer = ({ startUserId, onClose }) => {
             audio.addEventListener('timeupdate', handleAudioUpdate);
         } else {
             // Image + No Music
-            setTotalDuration(5);
+            // setTotalDuration(5);
             let startTime = Date.now();
             const animate = () => {
                 const elapsed = Date.now() - startTime;
@@ -235,7 +235,7 @@ const StatusViewer = ({ startUserId, onClose }) => {
                                     const p = (e.target.currentTime / e.target.duration) * 100;
                                     setProgress(p);
                                     setElapsedTime(e.target.currentTime);
-                                    setTotalDuration(e.target.duration);
+                                    // setTotalDuration(e.target.duration);
                                 }}
                             />
 

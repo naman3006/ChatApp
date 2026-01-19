@@ -21,7 +21,7 @@ const THEMES = {
 
 const ThemeSelector = ({ onClose, onSelect, currentTheme }) => {
     const [activeTab, setActiveTab] = useState("solid");
-    const [customImage, setCustomImage] = useState(null);
+    // const [customImage, setCustomImage] = useState(null); // Unused
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -35,7 +35,7 @@ const ThemeSelector = ({ onClose, onSelect, currentTheme }) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
-            setCustomImage(reader.result);
+            // setCustomImage(reader.result);
             onSelect({ type: "image", value: reader.result, id: "custom" });
             onClose();
         };

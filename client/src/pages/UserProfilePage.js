@@ -5,13 +5,13 @@ import { ReportModal } from "../components/ReportModal";
 import { ChatContext } from "../context/ChatContext";
 import { AuthContext } from "../context/authContext";
 import { formatLastSeen } from "../lib/utils";
-import { ShieldAlert, Ban, LogOut, Image as ImageIcon, Video as VideoIcon, X, ArrowLeft } from "lucide-react";
+import { ShieldAlert, Ban, Image as ImageIcon, X, ArrowLeft } from "lucide-react";
 
 export const UserProfilePage = () => {
     const { userId } = useParams();
     const navigate = useNavigate();
     const { messages, blockUser, unblockUser, reportUser, users, getMessages, selectedUser, setSelectedUser } = useContext(ChatContext); // Added users and selectedUser manipulation
-    const { logout, onlineUsers, authUser } = useContext(AuthContext);
+    const { onlineUsers, authUser } = useContext(AuthContext);
     const [mediaItems, setMediaItems] = useState([]);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [showAllMedia, setShowAllMedia] = useState(false);
@@ -31,7 +31,7 @@ export const UserProfilePage = () => {
             // Ensure we have messages for this user to show media
             getMessages(user._id);
         }
-    }, [user]);
+    }, [user, getMessages]);
 
 
     useEffect(() => {

@@ -1,11 +1,9 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Sidebar } from "../components/Sidebar";
 import { ChatContainer } from "../components/ChatContainer";
 
-import { ChatContext } from "../context/ChatContext";
-
 export const HomePage = () => {
-  const { selectedUser, selectedGroup } = useContext(ChatContext);
+  // const { selectedUser, selectedGroup } = useContext(ChatContext); // Removed unused variables
 
   return (
     <div className="w-full h-[100dvh] bg-background text-foreground overflow-hidden relative">

@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { CallContext } from '../context/CallContext';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, Maximize, Minimize, Move, Minimize2, Disc, Square } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, Maximize, Minimize, Minimize2, Disc, Square } from 'lucide-react';
 
 const VideoCall = () => {
     const {

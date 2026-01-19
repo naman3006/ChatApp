@@ -3,7 +3,7 @@ import { AuthContext } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import assets from '../chat-assets/assets';
-import { ChevronLeft, Save, Shield, Clock, CheckCircle, Ghost, Terminal } from "lucide-react";
+import { ChevronLeft, Save, Shield, Clock, CheckCircle, Ghost } from "lucide-react";
 import DeveloperSettings from '../components/DeveloperSettings';
 
 const SettingsPage = () => {

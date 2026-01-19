@@ -29,10 +29,10 @@ export const messageSchema = z.object({
     image: z.string().optional(),
     audio: z.string().optional(),
     file: z.object({
-        data: z.string(),
-        name: z.string(),
-        size: z.number(),
-        type: z.string()
+        data: z.any(),
+        name: z.any(),
+        size: z.any(),
+        type: z.any()
     }).optional(),
     groupId: z.string().optional(),
 }).refine(data => data.text || data.image || data.audio || data.file, {

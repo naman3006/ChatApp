@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, X, File, FileCode, FileArchive, Film, Image as ImageIcon } from 'lucide-react';
+import { FileText, X, File, FileArchive, Film, Image as ImageIcon } from 'lucide-react';
 
 const FilePreview = ({ file, onRemove }) => {
     if (!file) return null;

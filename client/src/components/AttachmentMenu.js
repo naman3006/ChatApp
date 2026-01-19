@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Image as ImageIcon, FileText, BarChart2, Paperclip, X } from 'lucide-react';
+import { Image as ImageIcon, FileText, BarChart2 } from 'lucide-react';
 
 const AttachmentMenu = ({
     isOpen,

@@ -7,7 +7,7 @@ import { AuthContext } from "../context/authContext";
 import toast from "react-hot-toast";
 import EmojiPicker from 'emoji-picker-react';
 import { CallContext } from "../context/CallContext";
-import { Phone, Video, Palette, BarChart2, Link, Copy, RefreshCw, Trash2 } from "lucide-react";
+import { Phone, Video, Palette, Link, Copy, RefreshCw, Trash2 } from "lucide-react";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import ThemeSelector from "./ThemeSelector";
 import CreatePollModal from "./CreatePollModal";
@@ -15,7 +15,7 @@ import MessageBubble from "./MessageBubble";
 import ForwardModal from "./ForwardModal";
 import AttachmentMenu from "./AttachmentMenu";
 import FilePreview from "./FilePreview";
-import { Paperclip, Send, Image as ImageIcon, X } from "lucide-react";
+import { Paperclip, Send, X } from "lucide-react";
 
 export const ChatContainer = () => {
   const navigate = useNavigate();
@@ -76,7 +76,7 @@ export const ChatContainer = () => {
   const oldScrollHeightRef = useRef(0);
   const touchTimer = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showStickerPicker, setShowStickerPicker] = useState(false);
+
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
   const [showForwardModal, setShowForwardModal] = useState(false);

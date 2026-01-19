@@ -1277,7 +1277,7 @@ export const ChatContainer = () => {
               <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
                 <button
                   type="button"
-                  onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowStickerPicker(false); }}
+                  onClick={() => { setShowEmojiPicker(!showEmojiPicker); }}
                   className={`text-muted-foreground hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-muted ${showEmojiPicker ? 'text-yellow-400' : ''}`}
                   title="Emoji"
                 >

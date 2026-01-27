@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/authContext";
 import toast from "react-hot-toast";
+import assets from "../chat-assets/assets";
 
 export const ChatContext = createContext();
 
@@ -174,7 +175,7 @@ export const ChatProvider = ({ children }) => {
           // Toast logic for DM (incoming from others)
           toast.custom((t) => (
             <div
-              className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer hover:bg-gray-50 transition-colors`}
+              className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-popover border border-border/50 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer hover:bg-secondary/20 transition-colors`}
               onClick={() => {
                 const sender = users.find(u => u._id === newMessage.senderId);
                 if (sender) {
@@ -188,11 +189,11 @@ export const ChatProvider = ({ children }) => {
               <div className="flex-1 w-0 p-4">
                 <div className="flex items-start">
                   <div className="flex-shrink-0 pt-0.5">
-                    <img className="h-10 w-10 rounded-full object-cover" src={users.find(u => u._id === newMessage.senderId)?.profilePic || "/avatar.png"} alt="" />
+                    <img className="h-10 w-10 rounded-full object-cover" src={users.find(u => u._id === newMessage.senderId)?.profilePic || assets.avatar_icon} alt="" />
                   </div>
                   <div className="ml-3 flex-1">
-                    <p className="text-sm font-medium text-gray-900">{users.find(u => u._id === newMessage.senderId)?.fullName || "New Message"}</p>
-                    <p className="mt-1 text-sm text-gray-500 truncate">{newMessage.text}</p>
+                    <p className="text-sm font-medium text-foreground">{users.find(u => u._id === newMessage.senderId)?.fullName || "New Message"}</p>
+                    <p className="mt-1 text-sm text-muted-foreground truncate">{newMessage.text}</p>
                   </div>
                 </div>
               </div>
@@ -769,6 +770,22 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  const searchMessages = async (query) => {
+    try {
+      const { data } = await axios.get(`/messages/search?query=${query}`);
+      if (data.success) {
+        return data.messages;
+      }
+      return [];
+    } catch (error) {
+      // toast.error(error.response?.data?.message || "Search failed"); 
+      // Silent error or simple log might be better for search as user types
+      console.error(error);
+      return [];
+    }
+  };
+
+
   useEffect(() => {
     subscribeMessages();
 
@@ -842,7 +859,8 @@ export const ChatProvider = ({ children }) => {
     isSelectionMode,
     toggleMessageSelection,
     clearSelection,
-    forwardMessages
+    forwardMessages,
+    searchMessages
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

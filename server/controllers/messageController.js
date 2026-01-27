@@ -94,6 +94,46 @@ export const getUserForSidebar = async (req, res) => {
   }
 };
 
+export const searchMessages = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query || query.trim() === "") {
+      return res.json({ success: true, messages: [] });
+    }
+
+    const userId = req.user._id;
+
+    // Find all groups the user is a member of
+    const userGroups = await Group.find({ members: userId }).select('_id');
+    const groupIds = userGroups.map(g => g._id);
+
+    // Search Messages
+    const messages = await Message.find({
+      $and: [
+        { text: { $regex: query, $options: "i" } }, // Case-insensitive partial match
+        {
+          $or: [
+            { senderId: userId },
+            { receiverId: userId },
+            { groupId: { $in: groupIds } }
+          ]
+        },
+        { deletedAt: null } // Exclude deleted messages
+      ]
+    })
+      .sort({ createdAt: -1 })
+      .populate("senderId", "fullName profilePic")
+      .populate("receiverId", "fullName profilePic")
+      .populate("groupId", "name icon");
+
+    res.json({ success: true, messages });
+
+  } catch (error) {
+    console.log("Error in searchMessages:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 //Get all messages for selected user
 export const getMessages = async (req, res) => {
   try {

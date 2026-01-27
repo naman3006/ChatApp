@@ -1,6 +1,7 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { CallContext } from '../context/CallContext';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, Maximize, Minimize, Minimize2, Disc, Square } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, Maximize, Minimize, Minimize2, Disc, Square, Users, Layout, Smartphone } from 'lucide-react';
+import assets from '../chat-assets/assets';
 
 const VideoCall = () => {
     const {
@@ -25,59 +26,49 @@ const VideoCall = () => {
     const [isPip, setIsPip] = useState(false);
     const containerRef = useRef(null);
 
-    // Constants for sizing
-    const PIP_WIDTH_DESKTOP = 250;
-    const PIP_WIDTH_MOBILE = 130;
-
-    // Advanced Draggable Logic
+    // Initial PIP Position (Bottom Right default)
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const positionRef = useRef({ x: 0, y: 0 });
     const isDragging = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });
     const longPressTimer = useRef(null);
 
-    // Helper to update both state and ref
+    const isMobile = window.innerWidth <= 768;
+
+    // Helper to update both state and ref for synchronous access
     const updatePosition = (newPos) => {
         positionRef.current = newPos;
         setPosition(newPos);
     };
 
-    // Initialize position
-    useEffect(() => {
-        const handleResize = () => {
-            const pipWidth = window.innerWidth > 768 ? PIP_WIDTH_DESKTOP : PIP_WIDTH_MOBILE;
+    // Calculate initial position based on window size
+    const getInitialPosition = () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        // Desktop: Bottom right with margin. Mobile: Bottom right with smaller margin.
+        const pipWidth = width > 768 ? 320 : 140; // Approx width
+        const pipHeight = width > 768 ? 180 : 200; // Approx height
 
-            if (isPip) {
-                // Keep within bounds
-                updatePosition({
-                    x: Math.min(Math.max(16, positionRef.current.x), window.innerWidth - pipWidth - 16),
-                    y: Math.min(Math.max(16, positionRef.current.y), window.innerHeight - 200)
-                });
-            } else {
-                updatePosition({
-                    x: window.innerWidth - pipWidth - 20,
-                    y: window.innerHeight - (window.innerWidth > 768 ? 260 : 200)
-                });
-            }
+        return {
+            x: width - pipWidth - 24,
+            y: height - pipHeight - 24
         };
+    };
 
-        window.addEventListener('resize', handleResize);
-
-        // Initial set
-        if (typeof window !== 'undefined') {
-            const pipWidth = window.innerWidth > 768 ? PIP_WIDTH_DESKTOP : PIP_WIDTH_MOBILE;
-            updatePosition({
-                x: window.innerWidth - pipWidth - 20,
-                y: window.innerHeight - (window.innerWidth > 768 ? 260 : 200)
-            });
+    // Set Initial Position on Mount/Resize logic
+    useEffect(() => {
+        if (callState === 'active' && !isPip) {
+            // Reset to centered or default view when becoming active not in PIP
         }
+        // If entering PIP, we might want to default to a corner if not set
+        if (isPip && position.x === 0 && position.y === 0) {
+            updatePosition(getInitialPosition());
+        }
+    }, [isPip, callState]);
 
-        return () => window.removeEventListener('resize', handleResize);
-    }, [callState, isPip]);
 
     const handleStart = (clientX, clientY) => {
         if (!isPip) return;
-
         const rect = containerRef.current.firstElementChild.getBoundingClientRect();
         dragOffset.current = {
             x: clientX - rect.left,
@@ -90,6 +81,7 @@ const VideoCall = () => {
         if (isDragging.current && isPip) {
             const newX = clientX - dragOffset.current.x;
             const newY = clientY - dragOffset.current.y;
+            // Immediate update for responsiveness
             updatePosition({ x: newX, y: newY });
         }
     };
@@ -98,24 +90,30 @@ const VideoCall = () => {
         if (!isDragging.current) return;
         isDragging.current = false;
 
-        // Snap to edge logic using synchronous Ref value
-        if (window.innerWidth > 0) {
-            const windowWidth = window.innerWidth;
-            const elementWidth = window.innerWidth > 768 ? PIP_WIDTH_DESKTOP : PIP_WIDTH_MOBILE;
-            const midPoint = positionRef.current.x + (elementWidth / 2);
+        // Snap to edges logic
+        const { x, y } = positionRef.current;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const elWidth = isMobile ? 140 : 320; // Estimated widths
+        const elHeight = isMobile ? 220 : 180;
 
-            let finalX;
-            if (midPoint < windowWidth / 2) {
-                finalX = 16; // Left margin
-            } else {
-                finalX = windowWidth - elementWidth - 16; // Right margin
-            }
+        let finalX = x;
+        let finalY = y;
 
-            // Keep Y within bounds
-            const finalY = Math.max(16, Math.min(window.innerHeight - 200, positionRef.current.y));
+        // Simple Boundary Check
+        if (finalX < 10) finalX = 10;
+        if (finalX + elWidth > width - 10) finalX = width - elWidth - 10;
+        if (finalY < 10) finalY = 10;
+        if (finalY + elHeight > height - 10) finalY = height - elHeight - 10;
 
-            updatePosition({ x: finalX, y: finalY });
+        // Optional: Snap to closest side horizontally
+        if (finalX + elWidth / 2 < width / 2) {
+            finalX = 16; // Snap Left
+        } else {
+            finalX = width - elWidth - 16; // Snap Right
         }
+
+        updatePosition({ x: finalX, y: finalY });
     };
 
     // Mouse Events
@@ -123,54 +121,39 @@ const VideoCall = () => {
         if (e.target.closest('button')) return;
         handleStart(e.clientX, e.clientY);
 
-        const handleWindowMouseMove = (moveEvent) => {
-            moveEvent.preventDefault();
-            handleMove(moveEvent.clientX, moveEvent.clientY);
+        const onMouseMove = (ev) => {
+            ev.preventDefault();
+            handleMove(ev.clientX, ev.clientY);
         };
-
-        const handleWindowMouseUp = () => {
+        const onMouseUp = () => {
             handleEnd();
-            window.removeEventListener('mousemove', handleWindowMouseMove);
-            window.removeEventListener('mouseup', handleWindowMouseUp);
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
         };
-
-        window.addEventListener('mousemove', handleWindowMouseMove);
-        window.addEventListener('mouseup', handleWindowMouseUp);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
     };
 
     // Touch Events
     const handleTouchStart = (e) => {
         if (!isPip || e.target.closest('button')) return;
         const touch = e.touches[0];
-
-        // Tap and Hold Logic
-        longPressTimer.current = setTimeout(() => {
-            if (navigator.vibrate) navigator.vibrate(50);
-            handleStart(touch.clientX, touch.clientY);
-        }, 300);
+        // Short delay to differentiate tap vs drag if needed, or just drag immediately
+        handleStart(touch.clientX, touch.clientY);
     };
 
     const handleTouchMove = (e) => {
         if (isDragging.current) {
-            e.preventDefault();
+            e.preventDefault(); // Prevent scrolling
             const touch = e.touches[0];
             handleMove(touch.clientX, touch.clientY);
-        } else {
-            clearTimeout(longPressTimer.current);
         }
-    };
-
-    const handleTouchEnd = () => {
-        clearTimeout(longPressTimer.current);
-        handleEnd();
     };
 
     const toggleFullScreen = () => {
         if (!containerRef.current) return;
         if (!document.fullscreenElement) {
-            containerRef.current.requestFullscreen().catch(err => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-            });
+            containerRef.current.requestFullscreen().catch(err => console.error(err));
             setIsFullScreen(true);
         } else {
             document.exitFullscreen();
@@ -178,15 +161,10 @@ const VideoCall = () => {
         }
     };
 
-    const togglePip = () => {
-        // Reset position when entering PiP for the first time if needed, 
-        // but state is improved to be persistent or smart.
+    const togglePipMode = () => {
         if (!isPip) {
-            const pipWidth = window.innerWidth > 768 ? PIP_WIDTH_DESKTOP : PIP_WIDTH_MOBILE;
-            setPosition({
-                x: window.innerWidth - pipWidth - 20,
-                y: window.innerHeight - 200
-            });
+            // Entering PIP
+            updatePosition(getInitialPosition());
         }
         setIsPip(!isPip);
         setIsFullScreen(false);
@@ -194,40 +172,57 @@ const VideoCall = () => {
 
     if (callState === 'idle' || callState === 'incoming') return null;
 
+    const isOutgoing = callState === 'outgoing';
+
     return (
         <div
             ref={containerRef}
-            className={`fixed z-50 transition-all duration-300 ${isPip
-                ? 'pointer-events-none'
-                : 'inset-0 bg-gray-900 bg-opacity-95 flex flex-col items-center justify-center p-4' // Overlay mode
-                } ${isFullScreen ? 'p-0' : ''}`}
+            className={`fixed z-[9999] transition-all duration-300 ease-in-out
+                ${isPip ? 'pointer-events-none' : 'inset-0 bg-black/95 flex flex-col items-center justify-center'}
+            `}
         >
             <div
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                onTouchEnd={handleEnd}
                 style={isPip ? {
                     transform: `translate(${position.x}px, ${position.y}px)`,
-                    width: window.innerWidth > 768 ? `${PIP_WIDTH_DESKTOP}px` : `${PIP_WIDTH_MOBILE}px`, // Responsive width
                     position: 'fixed',
                     left: 0,
-                    top: 0,
-                    touchAction: 'none' // Important for touch dragging
-                } : {}}
-                className={`relative overflow-hidden bg-black shadow-2xl ${isPip
-                    ? `aspect-[3/4] rounded-xl border-2 border-gray-700 pointer-events-auto shadow-2xl hover:shadow-violet-500/20 ${isDragging.current ? 'scale-105 z-50 ring-2 ring-violet-500 cursor-grabbing' : 'transition-all duration-500 ease-in-out cursor-grab'}`
-                    : isFullScreen
-                        ? 'w-full h-full rounded-none'
-                        : 'w-full max-w-6xl aspect-video rounded-xl border border-gray-800'
-                    }`}
+                    top: 0
+                } : { width: '100%', height: '100%' }}
+                className={`
+                    relative overflow-hidden shadow-2xl transition-all
+                    ${isPip
+                        ? `pointer-events-auto rounded-2xl bg-gray-900 border border-white/10 ${isDragging.current ? 'scale-105 shadow-violet-500/50 cursor-grabbing' : 'cursor-grab'} 
+                           w-[140px] h-[200px] sm:w-[320px] sm:h-[180px]` /* Mobile: Portraitish, Desktop: Landscape */
+                        : 'w-full h-full'
+                    }
+                `}
             >
-                {/* Header/Grab Handle for PiP */}
-                {isPip && (
-                    <div className={`absolute top-0 left-0 right-0 z-20 h-8 flex justify-center items-center ${isDragging ? 'bg-violet-500/20' : ''}`}>
-                        <div className="w-12 h-1 bg-gray-600 rounded-full/50 backdrop-blur-sm mt-2" />
-                    </div>
-                )}
+                {/* Background/Placeholder */}
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-0 flex flex-col items-center justify-center">
+                    {/* Show avatar if no video or outgoing */}
+                    {(isOutgoing || !userVideo || userVideo.getVideoTracks().length === 0) && (
+                        <div className={`flex flex-col items-center justify-center animate-pulse ${isPip ? 'scale-50' : ''}`}>
+                            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-violet-500/30 shadow-[0_0_30px_rgba(139,92,246,0.3)] mb-4 relative">
+                                <img
+                                    src={callDetails?.calleePic || callDetails?.callerPic || assets.avatar_icon}
+                                    className="w-full h-full object-cover"
+                                    alt="User"
+                                />
+                                <div className="absolute inset-0 bg-violet-500/10 mix-blend-overlay"></div>
+                            </div>
+                            <h3 className="text-white font-bold text-xl sm:text-2xl tracking-tight text-center px-4">
+                                {isOutgoing ? "Calling..." : (callDetails?.calleeName || callDetails?.callerName)}
+                            </h3>
+                            <p className="text-violet-300/70 text-sm mt-1">
+                                {isOutgoing ? "Ringing" : "Audio Call"}
+                            </p>
+                        </div>
+                    )}
+                </div>
 
                 {/* Remote Video */}
                 {callState === 'active' && (
@@ -235,120 +230,77 @@ const VideoCall = () => {
                         ref={remoteVideoRef}
                         playsInline
                         autoPlay
-                        className={`w-full h-full ${isPip ? 'object-cover' : 'object-contain'}`}
+                        className={`absolute inset-0 w-full h-full z-10 ${isPip ? 'object-cover' : 'object-contain'} bg-transparent`}
                     />
                 )}
 
-                {/* Fallback Display */}
-                {((callState === 'outgoing') || (callState === 'active' && (!userVideo || userVideo.getVideoTracks().length === 0))) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                        <div className={`text-center animate-pulse ${isPip ? 'scale-50' : ''}`}>
-                            <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl text-white font-bold shadow-lg ring-4 ring-gray-800">
-                                {callDetails?.calleeName?.charAt(0) || callDetails?.callerName?.charAt(0)}
-                            </div>
-                            <h3 className="text-white text-2xl md:text-3xl font-bold mb-2 tracking-tight">
-                                {callState === 'outgoing' ? 'Calling...' : 'Audio Call'}
-                            </h3>
-                            <p className="text-gray-400 text-lg">
-                                {callDetails?.calleeName || callDetails?.callerName}
-                            </p>
+                {/* My Video - Mini View */}
+                {/* Only show if I have video on. Hidden in very small PIP to avoid clutter unless screen sharing */}
+                {(!isVideoOff || isScreenSharing) && (
+                    <div className={`absolute z-20 rounded-xl overflow-hidden border border-white/20 shadow-lg bg-black/50 backdrop-blur-sm transition-all duration-300
+                        ${isPip
+                            ? 'w-1/3 bottom-2 right-2 opacity-80 hover:opacity-100' // Tiny corner in PIP
+                            : 'w-32 sm:w-48 bottom-24 right-4 sm:bottom-8 sm:right-8 hover:scale-105 hover:border-violet-500/50' // Normal usage
+                        }
+                    `}>
+                        <video
+                            ref={myVideo}
+                            playsInline
+                            muted
+                            autoPlay
+                            className="w-full h-full object-cover scale-x-[-1]"
+                        />
+                    </div>
+                )}
+
+
+
+
+
+                {/* Controls - Hidden in PIP unless hovered (desktop) or tapped (mobile - hard to do, usually just simple expand btn) */}
+                {!isPip && (
+                    <div className="absolute bottom-0 inset-x-0 z-30 p-6 sm:p-8 bg-gradient-to-t from-black via-black/60 to-transparent flex flex-col gap-4">
+
+                        {/* Actions Bar */}
+                        <div className="flex items-center justify-center gap-4 sm:gap-6">
+
+                            <button onClick={toggleMute} className={`p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isMuted ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
+                                {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                            </button>
+
+                            <button onClick={toggleVideo} className={`p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isVideoOff ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
+                                {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
+                            </button>
+
+                            <button onClick={leaveCall} className="p-4 rounded-full bg-red-600 text-white hover:bg-red-700 backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg shadow-red-600/20 px-8">
+                                <PhoneOff size={28} />
+                            </button>
+
+                            <button onClick={isRecording ? stopRecording : startRecording} className={`md:flex hidden p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
+                                {isRecording ? <Square size={24} /> : <Disc size={24} />}
+                            </button>
+
+                            <button onClick={toggleScreenShare} className={`md:flex hidden p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isScreenSharing ? 'bg-blue-600 text-white' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
+                                <MonitorUp size={24} />
+                            </button>
                         </div>
                     </div>
                 )}
 
-                {/* My Video (PiP in Full View, Hidden in Mini PiP mode to save space/confusion usually, or kept small) */}
-                {/* User asked for proper picture in picture mode. Standard is MyVideo is small corner in FullView. In PiP mode, usually we only see Remote Video unless we toggle. 
-                    Let's keep MyVideo hidden in PiP mode to maximize RemoteVideo visibility on small screens, OR make it very small. 
-                    The current code had it bottom-16. Let's keep it but ensure size is responsive.
-                */}
-                <div className={`absolute bg-gray-800 rounded-lg overflow-hidden border-2 border-gray-700 shadow-2xl transition-all z-10 ${!isScreenSharing && !callDetails?.isVideo ? 'hidden' : ''
-                    } ${isPip
-                        ? 'w-16 bottom-2 right-2 border pointer-events-none' // Smaller in PiP
-                        : 'bottom-4 right-4 md:bottom-6 md:right-6 w-32 md:w-48 lg:w-64 aspect-video hover:scale-105'
-                    }`}>
-                    <video
-                        ref={myVideo}
-                        playsInline
-                        muted
-                        autoPlay
-                        className={`w-full h-full object-cover transform scale-x-[-1]`}
-                    />
-                </div>
-
-                {/* Controls Overlay */}
-                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-all duration-300 flex justify-center gap-2 md:gap-8 ${isPip
-                    ? 'p-2 opacity-0 hover:opacity-100'
-                    : `p-6 opacity-0 hover:opacity-100 focus-within:opacity-100 ${isFullScreen ? '' : 'rounded-b-xl'}`
-                    }`}>
-
-                    <button
-                        onClick={toggleMute}
-                        className={`transition-all backdrop-blur-md rounded-full text-white flex items-center justify-center ${isPip ? 'p-1.5 w-7 h-7' : 'p-3 md:p-4'
-                            } ${isMuted ? 'bg-red-500/90 hover:bg-red-600' : 'bg-gray-700/60 hover:bg-gray-600/80'}`}
-                        title={isMuted ? "Unmute" : "Mute"}
-                    >
-                        {isMuted ? <MicOff size={isPip ? 12 : 24} /> : <Mic size={isPip ? 12 : 24} />}
-                    </button>
-
-                    <button
-                        onClick={toggleVideo}
-                        className={`transition-all backdrop-blur-md rounded-full text-white flex items-center justify-center ${isPip ? 'p-1.5 w-7 h-7' : 'p-3 md:p-4'
-                            } ${isVideoOff ? 'bg-red-500/90 hover:bg-red-600' : 'bg-gray-700/60 hover:bg-gray-600/80'}`}
-                        title={isVideoOff ? "Start Video" : "Stop Video"}
-                    >
-                        {isVideoOff ? <VideoOff size={isPip ? 12 : 24} /> : <Video size={isPip ? 12 : 24} />}
-                    </button>
-
-                    <button
-                        onClick={isRecording ? stopRecording : startRecording}
-                        className={`transition-all backdrop-blur-md rounded-full text-white flex items-center justify-center ${isPip ? 'p-1.5 w-7 h-7' : 'p-3 md:p-4'
-                            } ${isRecording ? 'bg-red-500/90 hover:bg-red-600 animate-pulse' : 'bg-gray-700/60 hover:bg-gray-600/80'}`}
-                        title={isRecording ? "Stop Recording" : "Start Recording"}
-                    >
-                        {isRecording ? <Square size={isPip ? 12 : 24} /> : <Disc size={isPip ? 12 : 24} />}
-                    </button>
-
-                    <button
-                        onClick={() => leaveCall(true)}
-                        className={`bg-red-600 hover:bg-red-700 text-white transition-all transform hover:scale-110 shadow-lg rounded-full flex items-center justify-center ${isPip ? 'p-1.5 w-7 h-7' : 'p-3 md:p-4'
-                            }`}
-                        title="End Call"
-                    >
-                        <PhoneOff size={isPip ? 12 : 28} />
-                    </button>
-
+                {/* Top Controls (PIP / Fullscreen) - Only visible when NOT in PIP or on hover in PIP */}
+                <div className={`absolute top-4 right-4 z-30 flex gap-2 transition-opacity duration-300 ${isPip ? 'opacity-0 group-hover:opacity-100 hover:opacity-100' : 'opacity-100'}`}>
                     {!isPip && (
-                        <>
-                            <button
-                                onClick={toggleScreenShare}
-                                className={`p-3 md:p-4 rounded-full transition-all backdrop-blur-md ${isScreenSharing ? 'bg-blue-600/90 hover:bg-blue-700 text-white shadow-blue-500/20 shadow-lg' : 'bg-gray-700/60 hover:bg-gray-600/80 text-white'}`}
-                                title="Share Screen"
-                            >
-                                <MonitorUp size={24} />
-                            </button>
-
-                            <button
-                                onClick={toggleFullScreen}
-                                className="p-3 md:p-4 rounded-full bg-gray-700/60 hover:bg-gray-600/80 text-white transition-all backdrop-blur-md"
-                                title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
-                            >
-                                {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
-                            </button>
-                        </>
+                        <button onClick={toggleFullScreen} className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md border border-white/10">
+                            {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                        </button>
                     )}
-
-                    {/* PiP Toggle Button */}
-                    <button
-                        onClick={togglePip}
-                        className={`transition-all backdrop-blur-md rounded-full text-white flex items-center justify-center bg-gray-700/60 hover:bg-gray-600/80 ${isPip ? 'absolute top-1 right-1 p-1 w-5 h-5 bg-black/50 hover:bg-black/80' : 'p-3 md:p-4'
-                            }`}
-                        title={isPip ? "Expand" : "Picture in Picture"}
-                    >
-                        {isPip ? <Maximize size={10} /> : <Minimize2 size={24} />}
+                    <button onClick={togglePipMode} className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-md border border-white/10 shadow-lg">
+                        {isPip ? <Maximize size={16} /> : <Minimize2 size={20} />}
                     </button>
                 </div>
             </div>
         </div>
     );
 };
+
 export default VideoCall;

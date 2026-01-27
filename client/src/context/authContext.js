@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const { data } = await axiosInstance.put("/auth/check");
+      const { data } = await axiosInstance.put("/check");
       if (data.success) {
         if (data.user) {
           setAuthUser(data.user);
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (state, credentials) => {
     try {
-      const { data } = await axiosInstance.post(`/auth/${state}`, credentials);
+      const { data } = await axiosInstance.post(`/${state}`, credentials);
       if (data.success) {
         setAuthUser(data.userData);
         connectSocket(data.userData);

@@ -54,7 +54,10 @@ export const ChatContainer = () => {
     toggleMessageSelection,
     clearSelection,
     generateInvite,
-    revokeInvite
+    revokeInvite,
+    translateMessage,
+    starMessage,
+    starredMessages
   } = useContext(ChatContext);
   const { startCall } = useContext(CallContext);
   const { authUser, onlineUsers } = useContext(AuthContext);
@@ -791,6 +794,9 @@ export const ChatContainer = () => {
                     isSelectionMode={isSelectionMode}
                     isSelected={selectedMessages.includes(msg._id)}
                     toggleSelection={toggleMessageSelection}
+                    translateMessage={translateMessage}
+                    starMessage={starMessage}
+                    starredMessages={starredMessages}
                   />
                 );
               })

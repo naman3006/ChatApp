@@ -262,7 +262,7 @@ const VideoCall = () => {
                     <div className="absolute bottom-0 inset-x-0 z-30 p-6 sm:p-8 bg-gradient-to-t from-black via-black/60 to-transparent flex flex-col gap-4">
 
                         {/* Actions Bar */}
-                        <div className="flex items-center justify-center gap-4 sm:gap-6">
+                        <div className="flex items-center justify-center gap-4 sm:gap-6 flex-wrap">
 
                             <button onClick={toggleMute} className={`p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isMuted ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
                                 {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
@@ -276,11 +276,12 @@ const VideoCall = () => {
                                 <PhoneOff size={28} />
                             </button>
 
-                            <button onClick={isRecording ? stopRecording : startRecording} className={`md:flex hidden p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
+                            {/* Mobile-visible Rec/Share buttons if space allows, or move to overlap menu? For now, wrap them */}
+                            <button onClick={isRecording ? stopRecording : startRecording} className={`p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
                                 {isRecording ? <Square size={24} /> : <Disc size={24} />}
                             </button>
 
-                            <button onClick={toggleScreenShare} className={`md:flex hidden p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isScreenSharing ? 'bg-blue-600 text-white' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
+                            <button onClick={toggleScreenShare} className={`hidden md:flex p-4 rounded-full backdrop-blur-xl transition-all duration-300 transform active:scale-95 shadow-lg ${isScreenSharing ? 'bg-blue-600 text-white' : 'bg-gray-800/60 text-white hover:bg-gray-700/80 border border-white/10'}`}>
                                 <MonitorUp size={24} />
                             </button>
                         </div>

@@ -1,6 +1,6 @@
 import express from "express"
 import { protectRoute } from "../middleware/auth.js";
-import { deleteMessage, getMessages, getUserForSidebar, markMessageAsSeen, sendMessage, undoDeleteMessage, updateMessage, addReaction, pinMessage, unpinMessage, forwardMessages, searchMessages } from "../controllers/messageController.js";
+import { deleteMessage, getMessages, getUserForSidebar, markMessageAsSeen, sendMessage, undoDeleteMessage, updateMessage, addReaction, pinMessage, unpinMessage, forwardMessages, searchMessages, translateMessage, toggleStarMessage, getStarredMessages } from "../controllers/messageController.js";
 import { validate } from "../middleware/validation.middleware.js";
 import { messageSchema } from "../lib/validators.js";
 
@@ -9,7 +9,10 @@ const messageRouter = express.Router();
 
 messageRouter.get("/users", protectRoute, getUserForSidebar)
 messageRouter.get("/search", protectRoute, searchMessages)
+messageRouter.get("/starred", protectRoute, getStarredMessages)
+messageRouter.put("/star/:id", protectRoute, toggleStarMessage)
 messageRouter.get("/:id", protectRoute, getMessages)
+messageRouter.post("/translate/:id", protectRoute, translateMessage)
 messageRouter.put("/mark/:id", protectRoute, markMessageAsSeen)
 messageRouter.post("/send/:id", protectRoute, validate(messageSchema), sendMessage)
 messageRouter.put("/:id", protectRoute, updateMessage);

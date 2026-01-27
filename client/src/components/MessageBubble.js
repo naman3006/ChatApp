@@ -1,7 +1,7 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { formatDateSeparator } from "../lib/utils";
 import VoiceMessage from "./VoiceMessage";
-import PollBubble from "./PollBubble";
+// import PollBubble from "./PollBubble";
 import { FileText, File, FileArchive, Film, Image as ImageIcon, Download } from "lucide-react";
 
 const MessageBubble = ({
@@ -36,8 +36,62 @@ const MessageBubble = ({
     firstUnseenMsgRef,
     isSelectionMode,
     isSelected,
-    toggleSelection
+    toggleSelection,
+    translateMessage,
+    starMessage,
+    starredMessages
 }) => {
+    const [translatedText, setTranslatedText] = useState(null);
+    const [isTranslating, setIsTranslating] = useState(false);
+    const [showLanguageModal, setShowLanguageModal] = useState(false);
+
+    const languages = [
+        { code: 'en', name: 'English' },
+        { code: 'hi', name: 'Hindi' },
+        { code: 'gu', name: 'Gujarati' },
+        { code: 'es', name: 'Spanish' },
+        { code: 'fr', name: 'French' },
+        { code: 'de', name: 'German' },
+        { code: 'it', name: 'Italian' },
+        { code: 'pt', name: 'Portuguese' },
+        { code: 'ru', name: 'Russian' },
+        { code: 'zh-CN', name: 'Chinese (Simplified)' },
+        { code: 'ja', name: 'Japanese' },
+        { code: 'ko', name: 'Korean' },
+        { code: 'ar', name: 'Arabic' },
+        { code: 'bn', name: 'Bengali' },
+        { code: 'mr', name: 'Marathi' },
+        { code: 'ta', name: 'Tamil' },
+        { code: 'te', name: 'Telugu' },
+        { code: 'ur', name: 'Urdu' }
+    ];
+
+    const handleTranslate = async (langCode = null) => {
+        if (translatedText && !langCode) {
+            setTranslatedText(null); // Toggle off if already translated and no new lang
+            return;
+        }
+
+        // If no langCode provided and no previous translation, show modal
+        // Or if user wants to change language (implied by UI design choice later, but for now let's say clicking translate opens modal if not set)
+        // Actually, let's make "Translate" button open modal ALWAYS if we want manual selection, 
+        // OR better: "Translate" defaults to preferred, but Long Press or separate Icon opens menu?
+        // User asked for "Option to convert in any language".
+        // Let's Open Modal when they click "Translate".
+
+        if (!langCode) {
+            setShowLanguageModal(true);
+            return;
+        }
+
+        setIsTranslating(true);
+        const text = await translateMessage(msg._id, langCode);
+        if (text) {
+            setTranslatedText(text);
+        }
+        setIsTranslating(false);
+        setShowLanguageModal(false);
+    };
 
     if (msg.isSystemMessage) {
         return (
@@ -119,7 +173,7 @@ const MessageBubble = ({
                     </div>
                 )}
 
-                <div className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"} max-w-[85%] sm:max-w-[75%] md:max-w-[70%]`}>
+                <div className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"} max-w-[90%] sm:max-w-[80%] md:max-w-[70%]`}>
 
                     {/* Sender Name for Groups (Others only) */}
                     {selectedGroup && !isMyMessage && (
@@ -163,7 +217,13 @@ const MessageBubble = ({
                                             : "rounded-tr-none bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white border border-white/10" /* Vibrant purple/indigo for sent */
                                             } `}
                                     >
-                                        {msg.text}
+                                        {translatedText || msg.text}
+                                        {translatedText && (
+                                            <span className="block text-[10px] opacity-70 mt-1 flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg>
+                                                Translated
+                                            </span>
+                                        )}
                                         {/* Time & Read inside bubble like screenshot */}
                                         <div className={`flex items-center gap-1 justify-end mt-1 text-[10px] ${!isMyMessage ? "text-gray-400" : "text-white/70"}`}>
                                             <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
@@ -226,7 +286,8 @@ const MessageBubble = ({
                         )}
 
                         {msg.pollId && (
-                            <PollBubble message={msg} />
+                            // <PollBubble message={msg} />
+                            <span>Poll (Disabled for debug)</span>
                         )}
 
                         {!msg.image && !msg.audio && !msg.pollId && !msg.file && (
@@ -244,10 +305,18 @@ const MessageBubble = ({
                                     </div>
                                 </div>
                             ) : (
-                                <div className={`relative px-4 py-2 rounded-3xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all max-w-[85vw] md:max-w-md ${!isMyMessage
+                                <div className={`relative px-4 py-2 rounded-3xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all max-w-full md:max-w-md ${!isMyMessage
                                     ? "bg-[#1f2937] text-gray-100 border border-gray-800/50 rounded-tl-none"
                                     : "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white shadow-violet-500/20 rounded-tr-none border border-white/10"}`}>
-                                    <p className="break-words whitespace-pre-wrap min-w-[60px]">{msg.text}</p>
+                                    <p className="break-words whitespace-pre-wrap min-w-[60px]">
+                                        {translatedText || msg.text}
+                                        {translatedText && (
+                                            <span className="block text-[10px] opacity-70 mt-1 flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg>
+                                                Translated
+                                            </span>
+                                        )}
+                                    </p>
                                     {/* Time & Read Status - Integrated */}
                                     <div className={`flex items-center gap-1 justify-end mt-1 select-none ${!isMyMessage ? "text-gray-400" : "text-white/70"}`}>
                                         <span className="text-[10px] font-medium tracking-wide">
@@ -343,6 +412,28 @@ const MessageBubble = ({
                                                     Forward
                                                 </button>
 
+                                                {msg.text && !msg.isSystemMessage && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); if (translatedText) setTranslatedText(null); else handleTranslate(); setActiveMenuId(null); }}
+                                                        className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted flex items-center gap-3 md:gap-2 active:bg-muted transition-colors border-t border-border"
+                                                    >
+                                                        <span className="md:hidden p-2 bg-muted rounded-full text-blue-400">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg>
+                                                        </span>
+                                                        {translatedText ? "Show Original" : "Translate"}
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); starMessage(msg._id); setActiveMenuId(null); }}
+                                                    className="w-full text-left px-5 py-4 md:px-4 md:py-2.5 text-base md:text-sm text-foreground hover:bg-muted flex items-center gap-3 md:gap-2 active:bg-muted transition-colors border-t border-border"
+                                                >
+                                                    <span className="md:hidden p-2 bg-muted rounded-full text-yellow-400">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={starredMessages.some(m => m._id === msg._id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                                    </span>
+                                                    {starredMessages.some(m => m._id === msg._id) ? "Unstar Message" : "Star Message"}
+                                                </button>
+
                                                 {isMyMessage && (
                                                     <button
                                                         onClick={() => { msg.pinned ? unpinMessage(msg._id) : pinMessage(msg._id); setActiveMenuId(null); }}
@@ -383,6 +474,43 @@ const MessageBubble = ({
 
                 </div >
             </div >
+
+            {/* Language Selection Modal */}
+            {showLanguageModal && (
+                <div
+                    className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowLanguageModal(false)}
+                >
+                    <div
+                        className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 backdrop-blur-md">
+                            <h3 className="text-white font-semibold text-lg">Translate to...</h3>
+                            <button
+                                onClick={() => setShowLanguageModal(false)}
+                                className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                            {languages.map(lang => (
+                                <button
+                                    key={lang.code}
+                                    onClick={() => handleTranslate(lang.code)}
+                                    className="w-full text-left px-4 py-3 rounded-xl text-gray-200 hover:bg-white/10 hover:text-white transition-all flex items-center justify-between group active:scale-[0.98]"
+                                >
+                                    <span className="font-medium">{lang.name}</span>
+                                    {/* <span className="text-xs text-gray-500 uppercase font-mono bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700">{lang.code}</span> */}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-100 text-violet-400 transition-opacity -translate-x-2 group-hover:translate-x-0"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </React.Fragment >
     );
 };

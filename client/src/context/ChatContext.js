@@ -778,12 +778,61 @@ export const ChatProvider = ({ children }) => {
       }
       return [];
     } catch (error) {
-      // toast.error(error.response?.data?.message || "Search failed"); 
-      // Silent error or simple log might be better for search as user types
       console.error(error);
       return [];
     }
   };
+
+  const translateMessage = async (messageId, targetLang = 'en') => {
+    try {
+      // If user has a preferred language, we might use that, but for now allow passing it or default 'en'
+      // In this app, we could check authUser.preferredLanguage if we had it in context fully synced context
+      // But for simplicity, let's assume we pass it or default.
+      const { data } = await axios.post(`/messages/translate/${messageId}`, { targetLang });
+      if (data.success) {
+        return data.translation;
+      }
+    } catch (error) {
+      toast.error("Translation failed");
+      console.error(error);
+      return null;
+    }
+  };
+
+  const [starredMessages, setStarredMessages] = useState([]);
+
+  const starMessage = async (messageId) => {
+    try {
+      const { data } = await axios.put(`/messages/star/${messageId}`);
+      if (data.success) {
+        if (data.isStarred) {
+          toast.success("Message Starred");
+        } else {
+          toast.success("Message Unstarred");
+        }
+        fetchStarredMessages();
+      }
+    } catch (error) {
+      toast.error("Failed to update star status");
+    }
+  };
+
+  const fetchStarredMessages = async () => {
+    try {
+      const { data } = await axios.get("/messages/starred");
+      if (data.success) {
+        setStarredMessages(data.starredMessages);
+      }
+    } catch (error) {
+      console.error("Failed to fetch starred messages");
+    }
+  };
+
+  useEffect(() => {
+    if (authUser) {
+      fetchStarredMessages();
+    }
+  }, [authUser]);
 
 
   useEffect(() => {
@@ -860,7 +909,11 @@ export const ChatProvider = ({ children }) => {
     toggleMessageSelection,
     clearSelection,
     forwardMessages,
-    searchMessages
+    searchMessages,
+    translateMessage,
+    starMessage,
+    starredMessages,
+    fetchStarredMessages
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

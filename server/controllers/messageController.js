@@ -4,6 +4,7 @@ import Group from "../models/Group.js";
 import Conversation from "../models/Conversation.js";
 import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../lib/socket.js";
+// import translate from 'google-translate-api-x'; // dynamic import in function
 
 //Get all users except the logged in user
 export const getUserForSidebar = async (req, res) => {
@@ -706,6 +707,80 @@ export const forwardMessages = async (req, res) => {
 
   } catch (error) {
     console.log("Error in forwardMessages:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const translateMessage = async (req, res) => {
+  try {
+    const { id: messageId } = req.params;
+    const { targetLang } = req.body;
+
+    if (!targetLang) {
+      return res.status(400).json({ success: false, message: "Target language required" });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: "Message not found" });
+    }
+
+    // Check if translation exists
+    if (message.translations && message.translations.get(targetLang)) {
+      return res.json({ success: true, translation: message.translations.get(targetLang) });
+    }
+
+    // Translate
+    const { translate } = await import('google-translate-api-x');
+    const result = await translate(message.text, { to: targetLang });
+
+    // Save to cache
+    if (!message.translations) {
+      message.translations = new Map();
+    }
+    message.translations.set(targetLang, result.text);
+    await message.save();
+
+    res.json({ success: true, translation: result.text });
+
+  } catch (error) {
+    console.error("Translation error:", error);
+    res.status(500).json({ success: false, message: "Translation failed" });
+  }
+};
+
+export const toggleStarMessage = async (req, res) => {
+  try {
+    const { id: messageId } = req.params;
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    const isStarred = user.starredMessages.includes(messageId);
+
+    if (isStarred) {
+      await User.findByIdAndUpdate(userId, { $pull: { starredMessages: messageId } });
+      res.json({ success: true, message: "Message unstarred", isStarred: false });
+    } else {
+      await User.findByIdAndUpdate(userId, { $push: { starredMessages: messageId } });
+      res.json({ success: true, message: "Message starred", isStarred: true });
+    }
+  } catch (error) {
+    console.error("Error in toggleStarMessage:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getStarredMessages = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).populate({
+      path: "starredMessages",
+      populate: { path: "senderId", select: "fullName profilePic" }
+    });
+
+    res.json({ success: true, starredMessages: user.starredMessages });
+  } catch (error) {
+    console.error("Error in getStarredMessages:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

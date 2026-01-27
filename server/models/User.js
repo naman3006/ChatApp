@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
         defaultEphemeralDuration: { type: Number, default: 0 }, // 0 = Off
     },
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    starredMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
     chatThemes: {
         type: Map,
         of: new mongoose.Schema({
@@ -22,6 +23,7 @@ const userSchema = new mongoose.Schema({
             id: { type: String, default: 'default' }
         }, { _id: false })
     },
+    preferredLanguage: { type: String, default: 'en' },
     lastSeen: { type: Date, default: Date.now },
 }, { timestamps: true })
 

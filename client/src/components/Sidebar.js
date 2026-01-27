@@ -30,7 +30,8 @@ export const Sidebar = () => {
         createGroup,
         typingData,
         isUsersLoading,
-        searchMessages
+        searchMessages,
+        starredMessages
     } = useContext(ChatContext);
 
     // ... (keep middle unchanged if possible using context, but replace needs context)
@@ -134,12 +135,12 @@ export const Sidebar = () => {
 
     return (
         <div
-            className={`h-full relative sm:rounded-l-2xl text-foreground w-full border-r border-border overflow-hidden bg-background/30 
-                ${selectedUser || selectedGroup ? "hidden md:block" : "block w-full"} 
+            className={`h-full relative sm:rounded-l-2xl text-foreground w-full border-r border-border overflow-hidden bg-background/30 flex flex-col
+                ${selectedUser || selectedGroup ? "hidden md:flex" : "flex w-full"} 
             `}
         >
-            {/* Fixed Floating Header Section with Glassmorphism */}
-            <div className="absolute top-0 left-0 w-full z-20 p-5 pb-3 bg-background/80 backdrop-blur-xl border-b border-border shadow-sm transition-all text-foreground flex flex-col gap-3">
+            {/* Header Section - No longer absolute */}
+            <div className="shrink-0 z-20 p-5 pb-3 bg-background/80 backdrop-blur-xl border-b border-border shadow-sm transition-all text-foreground flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <img
@@ -202,12 +203,21 @@ export const Sidebar = () => {
                     >
                         Messages
                     </button>
+                    <button
+                        onClick={() => setSearchType("starred")}
+                        className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-all ${searchType === "starred"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
+                    >
+                        Starred
+                    </button>
                 </div>
             </div>
 
 
             {/* Scrollable Content (Groups + Users) */}
-            <div className="h-full overflow-y-auto pt-[210px] px-5 pb-5 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-5 custom-scrollbar">
                 {isUsersLoading ? <SidebarSkeleton /> : (
                     <>
                         {searchType === "messages" ? (
@@ -247,6 +257,39 @@ export const Sidebar = () => {
                                             </div>
                                         ))
                                     )
+                                )}
+                            </div>
+                        ) : searchType === "starred" ? (
+                            <div className="flex flex-col gap-2">
+                                {starredMessages.length === 0 ? (
+                                    <div className="text-center text-muted-foreground mt-8">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                            <p className="text-sm">No starred messages yet</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    starredMessages.map((msg) => (
+                                        <div
+                                            key={msg._id}
+                                            onClick={() => handleMessageClick(msg)}
+                                            className="flex flex-col gap-1 p-3 rounded-lg cursor-pointer hover:bg-muted transition-colors border border-transparent hover:border-yellow-500/30"
+                                        >
+                                            <div className="flex items-center gap-2 justify-between">
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <img src={msg.senderId?.profilePic || assets.avatar_icon} className="w-5 h-5 rounded-full" alt="" />
+                                                    <span className="text-xs font-bold truncate">
+                                                        {msg.groupId ? msg.groupId.name : (msg.senderId?._id === authUser._id ? "You" : msg.senderId?.fullName)}
+                                                    </span>
+                                                    {msg.groupId && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded-full">Group</span>}
+                                                </div>
+                                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{formatMessageTime(msg.createdAt)}</span>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground line-clamp-2 pl-7">
+                                                {msg.image ? "📷 Image" : msg.file ? "📎 File" : msg.audio ? "🎤 Audio" : msg.text}
+                                            </p>
+                                        </div>
+                                    ))
                                 )}
                             </div>
                         ) : (
@@ -303,15 +346,15 @@ export const Sidebar = () => {
                                                 alt=""
                                                 className="w-[35px] aspect-[1/1] rounded-full"
                                             />
-                                            <div className="flex flex-col leading-5">
-                                                <p className="text-sm font-medium">{user.fullName}</p>
+                                            <div className="flex flex-col leading-5 min-w-0">
+                                                <p className="text-sm font-medium truncate">{user.fullName}</p>
                                                 {typingData && typingData[user._id] && typingData[user._id].size > 0 ? (
                                                     <span className="text-green-400 text-xs animate-pulse font-medium">Typing...</span>
                                                 ) : (
                                                     onlineUsers.includes(user._id) ? (
                                                         <span className="text-green-400 text-xs">Online</span>
                                                     ) : (
-                                                        <span className="text-muted-foreground text-xs">
+                                                        <span className="text-muted-foreground text-xs truncate">
                                                             {user.updatedAt ? `Last seen: ${formatMessageTime(user.updatedAt)}` : "Offline"}
                                                         </span>
                                                     )
@@ -333,8 +376,9 @@ export const Sidebar = () => {
                 {/* Create Group Modal */}
                 {
                     showGroupModal && (
-                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                            <div className="bg-popover border border-border p-6 rounded-xl w-full max-w-md shadow-2xl">
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+                            <div className="bg-popover border-t sm:border border-border p-6 rounded-t-2xl sm:rounded-xl w-full max-w-md shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+                                <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 sm:hidden"></div>
                                 <h2 className="text-xl text-popover-foreground font-bold mb-4">Create New Group</h2>
 
                                 <input

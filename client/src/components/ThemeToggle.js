@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Moon, Sun, Monitor, Check } from "lucide-react";
+import { Moon, Sun, Check, Laptop } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 export function ThemeToggle({ className }) {
@@ -20,13 +20,13 @@ export function ThemeToggle({ className }) {
     const themeOptions = [
         { value: "light", label: "Light", icon: Sun },
         { value: "dark", label: "Dark", icon: Moon },
-        { value: "system", label: "System", icon: Monitor },
+        { value: "system", label: "System", icon: Laptop }, // Using Laptop instead of Monitor
     ];
 
     const currentIcon = () => {
         if (theme === 'light') return <Sun className="h-[1.2rem] w-[1.2rem] text-yellow-500 transition-all" />;
         if (theme === 'dark') return <Moon className="h-[1.2rem] w-[1.2rem] text-blue-400 transition-all" />;
-        return <Monitor className="h-[1.2rem] w-[1.2rem] text-gray-400 transition-all" />;
+        return <Laptop className="h-[1.2rem] w-[1.2rem] text-gray-400 transition-all" />;
     };
 
     return (

@@ -5,6 +5,7 @@ import Conversation from "../models/Conversation.js";
 import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../lib/socket.js";
 // import translate from 'google-translate-api-x'; // dynamic import in function
+import ogs from 'open-graph-scraper';
 
 //Get all users except the logged in user
 export const getUserForSidebar = async (req, res) => {
@@ -344,6 +345,29 @@ export const sendMessage = async (req, res) => {
       }
     }
 
+    let linkMetadata = null;
+    if (text) {
+      // Simple regex to find the first URL
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const match = text.match(urlRegex);
+      if (match && match[0]) {
+        try {
+          const { result } = await ogs({ url: match[0] });
+          if (result && result.success) {
+            linkMetadata = {
+              title: result.ogTitle,
+              description: result.ogDescription,
+              image: result.ogImage?.length > 0 ? result.ogImage[0].url : (result.ogImage?.url || null),
+              url: match[0]
+            };
+          }
+        } catch (err) {
+          console.error("OGS Error:", err);
+          // Proceed without metadata
+        }
+      }
+    }
+
     let newMessage;
     const messageData = {
       senderId,
@@ -351,6 +375,7 @@ export const sendMessage = async (req, res) => {
       image: imageUrl,
       audio: audioUrl,
       file: fileData,
+      linkMetadata,
       expiresAt,
     };
 

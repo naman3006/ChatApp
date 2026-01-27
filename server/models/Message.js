@@ -44,10 +44,17 @@ const messageSchema = new mongoose.Schema(
         emoji: { type: String, required: true },
       },
     ],
+
     translations: {
       type: Map,
       of: String,
       default: {},
+    },
+    linkMetadata: {
+      title: { type: String },
+      description: { type: String },
+      image: { type: String },
+      url: { type: String }
     },
   },
   { timestamps: true }

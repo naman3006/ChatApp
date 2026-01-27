@@ -2,6 +2,7 @@ import React, { memo, useState } from "react";
 import { formatDateSeparator } from "../lib/utils";
 import VoiceMessage from "./VoiceMessage";
 // import PollBubble from "./PollBubble";
+import LinkPreview from "./LinkPreview";
 import { FileText, File, FileArchive, Film, Image as ImageIcon, Download } from "lucide-react";
 
 const MessageBubble = ({
@@ -316,7 +317,16 @@ const MessageBubble = ({
                                                 Translated
                                             </span>
                                         )}
+
                                     </p>
+
+                                    {/* Link Preview */}
+                                    {msg.linkMetadata && (
+                                        <div className="mt-1 px-1 pb-1">
+                                            <LinkPreview metadata={msg.linkMetadata} />
+                                        </div>
+                                    )}
+
                                     {/* Time & Read Status - Integrated */}
                                     <div className={`flex items-center gap-1 justify-end mt-1 select-none ${!isMyMessage ? "text-gray-400" : "text-white/70"}`}>
                                         <span className="text-[10px] font-medium tracking-wide">
@@ -476,41 +486,43 @@ const MessageBubble = ({
             </div >
 
             {/* Language Selection Modal */}
-            {showLanguageModal && (
-                <div
-                    className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-                    onClick={() => setShowLanguageModal(false)}
-                >
+            {
+                showLanguageModal && (
                     <div
-                        className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
-                        onClick={e => e.stopPropagation()}
+                        className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+                        onClick={() => setShowLanguageModal(false)}
                     >
-                        <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 backdrop-blur-md">
-                            <h3 className="text-white font-semibold text-lg">Translate to...</h3>
-                            <button
-                                onClick={() => setShowLanguageModal(false)}
-                                className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
-                        </div>
-
-                        <div className="overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                            {languages.map(lang => (
+                        <div
+                            className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 backdrop-blur-md">
+                                <h3 className="text-white font-semibold text-lg">Translate to...</h3>
                                 <button
-                                    key={lang.code}
-                                    onClick={() => handleTranslate(lang.code)}
-                                    className="w-full text-left px-4 py-3 rounded-xl text-gray-200 hover:bg-white/10 hover:text-white transition-all flex items-center justify-between group active:scale-[0.98]"
+                                    onClick={() => setShowLanguageModal(false)}
+                                    className="p-1 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
                                 >
-                                    <span className="font-medium">{lang.name}</span>
-                                    {/* <span className="text-xs text-gray-500 uppercase font-mono bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700">{lang.code}</span> */}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-100 text-violet-400 transition-opacity -translate-x-2 group-hover:translate-x-0"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                 </button>
-                            ))}
+                            </div>
+
+                            <div className="overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                                {languages.map(lang => (
+                                    <button
+                                        key={lang.code}
+                                        onClick={() => handleTranslate(lang.code)}
+                                        className="w-full text-left px-4 py-3 rounded-xl text-gray-200 hover:bg-white/10 hover:text-white transition-all flex items-center justify-between group active:scale-[0.98]"
+                                    >
+                                        <span className="font-medium">{lang.name}</span>
+                                        {/* <span className="text-xs text-gray-500 uppercase font-mono bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700">{lang.code}</span> */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-100 text-violet-400 transition-opacity -translate-x-2 group-hover:translate-x-0"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </React.Fragment >
     );
 };

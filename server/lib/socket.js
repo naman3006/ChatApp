@@ -12,7 +12,10 @@ const io = new Server(server, {
         origin: [
             "http://localhost:3000",
             "http://localhost:5173",
-            ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+            "https://chat-app-topaz-phi-50.vercel.app",
+            "https://chat-zzqxrm3l3-naman-patels-projects-b7bc3e39.vercel.app",
+            "https://chat-app-git-main-naman-patels-projects-b7bc3e39.vercel.app",
+            ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL.replace(/\/$/, "")] : []),
         ],
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true,

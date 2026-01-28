@@ -34,7 +34,7 @@ app.use(
             "http://localhost:5173",
             "chat-app-topaz-phi-50.vercel.app",
             "https://chat-zzqxrm3l3-naman-patels-projects-b7bc3e39.vercel.app",
-            ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+            // ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
         ],
         credentials: true,
     })

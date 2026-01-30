@@ -125,6 +125,7 @@ export const searchMessages = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .populate("senderId", "fullName profilePic")
+      .populate("mentions", "username fullName")
       .populate("receiverId", "fullName profilePic")
       .populate("groupId", "name icon");
 
@@ -167,7 +168,8 @@ export const getMessages = async (req, res) => {
         .sort({ createdAt: -1 }) // Get newest first
         .skip(skip)
         .limit(limit)
-        .populate("senderId", "fullName profilePic");
+        .populate("senderId", "fullName profilePic")
+        .populate("mentions", "username fullName");
 
       // Reverse to chronological order for frontend
       messages = messages.reverse();
@@ -346,8 +348,10 @@ export const sendMessage = async (req, res) => {
     }
 
     let linkMetadata = null;
+    const mentionsSet = new Set();
+
     if (text) {
-      // Simple regex to find the first URL
+      // 1. Link Metadata
       const urlRegex = /(https?:\/\/[^\s]+)/g;
       const match = text.match(urlRegex);
       if (match && match[0]) {
@@ -363,8 +367,20 @@ export const sendMessage = async (req, res) => {
           }
         } catch (err) {
           console.error("OGS Error:", err);
-          // Proceed without metadata
         }
+      }
+
+      // 2. Mentions Parsing (@username)
+      const mentionRegex = /@(\w+)/g;
+      const usernames = new Set();
+      let mentionMatch;
+      while ((mentionMatch = mentionRegex.exec(text)) !== null) {
+        usernames.add(mentionMatch[1]);
+      }
+
+      if (usernames.size > 0) {
+        const foundUsers = await User.find({ username: { $in: Array.from(usernames) } }).select('_id');
+        foundUsers.forEach(u => mentionsSet.add(u._id));
       }
     }
 
@@ -376,6 +392,7 @@ export const sendMessage = async (req, res) => {
       audio: audioUrl,
       file: fileData,
       linkMetadata,
+      mentions: Array.from(mentionsSet),
       expiresAt,
     };
 
@@ -386,6 +403,7 @@ export const sendMessage = async (req, res) => {
 
       // Populate sender info for immediate display
       await newMessage.populate('senderId', 'fullName profilePic');
+      await newMessage.populate('mentions', 'username fullName');
 
       // Emit to Group Room
       io.to(`group_${groupId}`).emit("newGroupMessage", newMessage);
@@ -393,6 +411,7 @@ export const sendMessage = async (req, res) => {
       // DM
       messageData.receiverId = receiverId;
       newMessage = await Message.create(messageData);
+      await newMessage.populate('mentions', 'username fullName');
 
       // Emit to Receiver's Room (all their tabs)
       io.to(receiverId).emit("newMessage", newMessage);

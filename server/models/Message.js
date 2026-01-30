@@ -11,6 +11,9 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    mentions: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+    ],
     groupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Group",

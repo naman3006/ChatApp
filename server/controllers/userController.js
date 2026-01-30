@@ -17,10 +17,16 @@ export const signup = async (req, res) => {
     }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Generate username
+    const baseUsername = email.split('@')[0];
+    const username = `${baseUsername}${Math.floor(Math.random() * 10000)}`;
+
     const newUser = await User.create({
       fullName,
       email,
       password: hashedPassword,
+      username,
       bio,
     });
     const token = generateToken(newUser._id);

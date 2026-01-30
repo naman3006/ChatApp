@@ -15,6 +15,7 @@ import MessageBubble from "./MessageBubble";
 import ForwardModal from "./ForwardModal";
 import AttachmentMenu from "./AttachmentMenu";
 import FilePreview from "./FilePreview";
+import MentionSuggestions from "./MentionSuggestions";
 import { Paperclip, Send, X } from "lucide-react";
 
 export const ChatContainer = () => {
@@ -92,6 +93,67 @@ export const ChatContainer = () => {
 
   const typingTimeoutRef = useRef(null);
 
+  // Mentions State
+  const [mentionSuggestions, setMentionSuggestions] = useState([]);
+  const [isMentioning, setIsMentioning] = useState(false);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionQuery, setMentionQuery] = useState("");
+
+  useEffect(() => {
+    if (isMentioning) {
+      const query = mentionQuery.toLowerCase();
+      let potentialUsers = [];
+      if (selectedGroup) {
+        potentialUsers = selectedGroup.members.filter(m => m._id !== authUser._id);
+      } else if (selectedUser) {
+        // In DM, only the other user is mentionable
+        potentialUsers = [selectedUser];
+      }
+
+      const filtered = potentialUsers.filter(u =>
+        (u.username?.toLowerCase().includes(query)) ||
+        (u.fullName.toLowerCase().includes(query))
+      ).slice(0, 5);
+
+      setMentionSuggestions(filtered);
+      setMentionIndex(0);
+    } else {
+      setMentionSuggestions([]);
+    }
+  }, [mentionQuery, isMentioning, selectedGroup, selectedUser, authUser._id]);
+
+
+  const handleKeyDown = (e) => {
+    if (isMentioning && mentionSuggestions.length > 0) {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex(prev => (prev > 0 ? prev - 1 : mentionSuggestions.length - 1));
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex(prev => (prev < mentionSuggestions.length - 1 ? prev + 1 : 0));
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        selectMention(mentionSuggestions[mentionIndex]);
+      } else if (e.key === "Escape") {
+        setIsMentioning(false);
+      }
+    }
+  };
+
+  const selectMention = (user) => {
+    // Replace the last @... with @username 
+    // We need to find the specific @ we are typing
+    // Simple approach: Replace from lastIndexOf("@")
+    const lastAt = input.lastIndexOf("@");
+    const newValue = input.substring(0, lastAt) + `@${user.username || user.fullName.split(" ")[0]} ` + input.substring(lastAt + mentionQuery.length + 1);
+
+    setInput(newValue);
+    setIsMentioning(false);
+
+    // Focus back (though usually maintained)
+  };
+
+
   // Long Press Logic for Mobile Reactions
   const handleTouchStart = (msgId) => {
     touchTimer.current = setTimeout(() => {
@@ -108,12 +170,22 @@ export const ChatContainer = () => {
   };
 
   const handleInputChange = (e) => {
-    setInput(e.target.value);
+    const val = e.target.value;
+    setInput(val);
+
+    // Mention Detection
+    const mentionMatch = val.match(/@([\w]*)$/);
+    if (mentionMatch) {
+      setIsMentioning(true);
+      setMentionQuery(mentionMatch[1]);
+    } else {
+      setIsMentioning(false);
+    }
 
     const chatId = selectedGroup ? selectedGroup._id : selectedUser._id;
     const isGroup = !!selectedGroup;
 
-    if (e.target.value.trim().length > 0) {
+    if (val.trim().length > 0) {
       sendTyping(chatId, isGroup);
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -1270,10 +1342,17 @@ export const ChatContainer = () => {
             />
 
             <div className="flex-1 flex items-center bg-secondary/80 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-[24px] border border-border/50 shadow-lg focus-within:border-violet-500/50 focus-within:bg-secondary focus-within:shadow-violet-500/10 transition-all w-full relative group">
+              {isMentioning && (
+                <MentionSuggestions
+                  suggestions={mentionSuggestions}
+                  onSelect={selectMention}
+                  activeIndex={mentionIndex}
+                />
+              )}
               <input
                 onChange={handleInputChange}
                 value={input}
-                // onKeyDown={(e) => (e.key === "Enter" ? handleSendMessage(e) : null)} // Form handles submit
+                onKeyDown={handleKeyDown}
                 type="text"
                 placeholder={imagePreview ? "Add a caption..." : "Message..."}
                 className="flex-1 text-[15px] md:text-base py-2.5 md:py-3 bg-transparent outline-none text-foreground placeholder:text-muted-foreground min-w-0"

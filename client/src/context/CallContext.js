@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 export const CallContext = createContext();
 
 export const CallProvider = ({ children }) => {
-    const { socket, authUser } = useContext(AuthContext);
+    const { axios, socket, authUser } = useContext(AuthContext);
 
     const [callState, setCallState] = useState("idle"); // idle, incoming, outgoing, active
     const [callDetails, setCallDetails] = useState(null); // { callerId, callerName, isVideo, signal } (for incoming) or { calleeId, calleeName } (for outgoing)
@@ -17,7 +17,7 @@ export const CallProvider = ({ children }) => {
     const [remoteVideoOff, setRemoteVideoOff] = useState(false);
     const [callStartTime, setCallStartTime] = useState(null);
 
-    const { axios } = useContext(AuthContext);
+
     const myVideo = useRef();
     const remoteVideoRef = useRef();
     const peerConnection = useRef();
@@ -101,6 +101,7 @@ export const CallProvider = ({ children }) => {
         // Calculate duration and send message if active
         if (callState === "active" && callStartTime && isEndedByMe) {
             const duration = Date.now() - callStartTime;
+
             const durationText = formatTime(duration);
             const type = callDetails?.isVideo ? "Video" : "Audio";
             const messageText = `${type} Call ended • ${durationText}`;

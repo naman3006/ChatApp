@@ -5,6 +5,8 @@ import { AuthContext } from "./context/authContext";
 import VideoCall from "./components/VideoCall";
 import CallNotification from "./components/CallNotification";
 import { Loader } from "lucide-react";
+import 'highlight.js/styles/github-dark.css';
+import 'katex/dist/katex.min.css';
 
 // Lazy Loaded Components
 const HomePage = lazy(() => import("./pages/HomePage").then(module => ({ default: module.HomePage })));

@@ -4,44 +4,9 @@ import VoiceMessage from "./VoiceMessage";
 // import PollBubble from "./PollBubble";
 import LinkPreview from "./LinkPreview";
 import { FileText, File, FileArchive, Film, Image as ImageIcon, Download } from "lucide-react";
+import MarkdownRenderer from "./MarkdownRenderer";
 
-const renderTextWithMentions = (text, mentions, authUser) => {
-    if (!text) return null;
-    if (!mentions || mentions.length === 0) return text;
 
-    const regex = /@(\w+)/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = regex.exec(text)) !== null) {
-        if (match.index > lastIndex) {
-            parts.push(text.substring(lastIndex, match.index));
-        }
-
-        const username = match[1];
-        const isMention = mentions.some(u => u.username === username);
-        const isMe = isMention && authUser?.username === username;
-
-        if (isMention) {
-            parts.push(
-                <span key={match.index} className={`font-semibold rounded px-0.5 transition-colors ${isMe ? "bg-yellow-500/30 text-yellow-200 ring-1 ring-yellow-500/50" : "text-violet-300 hover:underline cursor-pointer"}`}>
-                    {match[0]}
-                </span>
-            );
-        } else {
-            parts.push(match[0]);
-        }
-
-        lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < text.length) {
-        parts.push(text.substring(lastIndex));
-    }
-
-    return parts;
-};
 
 const MessageBubble = ({
     msg,
@@ -349,8 +314,12 @@ const MessageBubble = ({
                                 <div className={`relative px-4 py-2 rounded-3xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all max-w-full md:max-w-md ${!isMyMessage
                                     ? "bg-[#1f2937] text-gray-100 border border-gray-800/50 rounded-tl-none"
                                     : "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white shadow-violet-500/20 rounded-tr-none border border-white/10"}`}>
-                                    <p className="break-words whitespace-pre-wrap min-w-[60px]">
-                                        {translatedText || renderTextWithMentions(msg.text, msg.mentions, authUser)}
+                                    <div className="break-words min-w-[60px]">
+                                        <MarkdownRenderer
+                                            content={translatedText || msg.text}
+                                            mentions={msg.mentions}
+                                            authUser={authUser}
+                                        />
                                         {translatedText && (
                                             <span className="block text-[10px] opacity-70 mt-1 flex items-center gap-1">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg>
@@ -358,7 +327,7 @@ const MessageBubble = ({
                                             </span>
                                         )}
 
-                                    </p>
+                                    </div>
 
                                     {/* Link Preview */}
                                     {msg.linkMetadata && (

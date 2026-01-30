@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import TextareaAutosize from 'react-textarea-autosize';
 import assets from "../chat-assets/assets";
 import { formatMessageTime } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
@@ -1349,13 +1350,20 @@ export const ChatContainer = () => {
                   activeIndex={mentionIndex}
                 />
               )}
-              <input
+              <TextareaAutosize
+                minRows={1}
+                maxRows={5}
                 onChange={handleInputChange}
                 value={input}
-                onKeyDown={handleKeyDown}
-                type="text"
+                onKeyDown={(e) => {
+                  handleKeyDown(e);
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                }}
                 placeholder={imagePreview ? "Add a caption..." : "Message..."}
-                className="flex-1 text-[15px] md:text-base py-2.5 md:py-3 bg-transparent outline-none text-foreground placeholder:text-muted-foreground min-w-0"
+                className="flex-1 text-[15px] md:text-base py-2.5 md:py-3 bg-transparent outline-none text-foreground placeholder:text-muted-foreground min-w-0 resize-none"
                 disabled={isUploading}
               />
 

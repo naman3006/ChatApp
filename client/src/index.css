@@ -163,3 +163,42 @@
     animation: pulse-glow 4s ease-in-out infinite;
   }
 }
+
+/* Admonition / Callout Styles */
+@layer components {
+  .admonition {
+    @apply border-l-4 p-4 my-4 rounded-r-lg bg-opacity-10 backdrop-blur-sm shadow-sm;
+  }
+
+  .admonition-note {
+    @apply border-blue-500 bg-blue-500/10 text-blue-200;
+  }
+  .admonition-note::before {
+    content: "NOTE";
+    @apply block font-bold text-xs mb-1 text-blue-400 opacity-80;
+  }
+
+  .admonition-tip {
+    @apply border-green-500 bg-green-500/10 text-green-200;
+  }
+  .admonition-tip::before {
+    content: "TIP";
+    @apply block font-bold text-xs mb-1 text-green-400 opacity-80;
+  }
+
+  .admonition-warning {
+    @apply border-yellow-500 bg-yellow-500/10 text-yellow-200;
+  }
+  .admonition-warning::before {
+    content: "WARNING";
+    @apply block font-bold text-xs mb-1 text-yellow-400 opacity-80;
+  }
+
+  .admonition-danger {
+    @apply border-red-500 bg-red-500/10 text-red-200;
+  }
+  .admonition-danger::before {
+    content: "DANGER";
+    @apply block font-bold text-xs mb-1 text-red-400 opacity-80;
+  }
+}

@@ -12,6 +12,8 @@ import statusRouter from "./routes/statusRoutes.js";
 import developerRouter from "./routes/developerRoutes.js";
 import conversationRouter from "./routes/conversationRoutes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpecs from "./config/swagger.js";
 
 import { app, server } from "./lib/socket.js";
 
@@ -59,6 +61,9 @@ app.use("/api/groups", groupRouter);
 app.use("/api/polls", pollRouter);
 app.use("/api/conversations", conversationRouter);
 app.use("/api", developerRouter);
+
+// Swagger Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Global Error Handler
 app.use(errorHandler);

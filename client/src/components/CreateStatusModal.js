@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Image, Video, Loader2, Music, Search, Play, Pause } from 'lucide-react';
 import toast from 'react-hot-toast';
 

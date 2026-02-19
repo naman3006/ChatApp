@@ -56,7 +56,7 @@ export const HomePage = () => {
         {/* Sidebar Wrapper */}
         <div
           ref={sidebarRef}
-          className={`${selectedUser || selectedGroup ? "hidden md:flex" : "flex"} w-full md:w-[var(--sidebar-width)] flex-shrink-0 flex-col relative`}
+          className={`${selectedUser || selectedGroup ? "hidden md:flex" : "flex"} w-full md:w-[var(--sidebar-width)] flex-shrink-0 flex-col relative h-full min-h-0`}
         >
           <Sidebar />
         </div>

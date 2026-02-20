@@ -122,7 +122,7 @@ const MarkdownRenderer = ({ content, mentions, authUser }) => {
     };
 
     return (
-        <div className="markdown-content prose prose-sm prose-invert max-w-none break-words prose-p:my-1 prose-pre:bg-[#1e1e24] prose-pre:border prose-pre:border-gray-700/50">
+        <div className="markdown-content prose prose-sm prose-invert max-w-none break-words break-all prose-p:my-1 prose-pre:bg-[#1e1e24] prose-pre:border prose-pre:border-gray-700/50">
             <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath, remarkEmoji, remarkDirective, remarkAdmonitions, remarkBreaks]}
                 rehypePlugins={[rehypeHighlight, rehypeKatex]}

@@ -218,7 +218,7 @@ const MessageBubble = ({
                                 </div>
                                 {msg.text && (
                                     <p
-                                        className={`px-4 py-2.5 w-full sm:min-w-[120px] text-[15px] rounded-3xl mt-1 break-words shadow-sm leading-relaxed ${!isMyMessage
+                                        className={`px-4 py-2.5 w-full sm:min-w-[120px] text-[15px] rounded-3xl mt-1 break-words break-all shadow-sm leading-relaxed overflow-hidden ${!isMyMessage
                                             ? "rounded-tl-none bg-[#1e1e24] text-gray-100 border border-gray-800/50" /* Dark aesthetic for received */
                                             : "rounded-tr-none bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white border border-white/10" /* Vibrant purple/indigo for sent */
                                             } `}
@@ -311,10 +311,10 @@ const MessageBubble = ({
                                     </div>
                                 </div>
                             ) : (
-                                <div className={`relative px-4 py-2 rounded-3xl md:text-[15px] font-normal leading-relaxed break-words shadow-sm transition-all max-w-full md:max-w-md ${!isMyMessage
+                                <div className={`relative px-4 py-2 rounded-3xl md:text-[15px] font-normal leading-relaxed break-words break-all shadow-sm transition-all max-w-full md:max-w-md overflow-hidden ${!isMyMessage
                                     ? "bg-[#1f2937] text-gray-100 border border-gray-800/50 rounded-tl-none"
                                     : "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white shadow-violet-500/20 rounded-tr-none border border-white/10"}`}>
-                                    <div className="break-words min-w-[60px]">
+                                    <div className="break-words break-all min-w-[60px] max-w-full overflow-hidden">
                                         <MarkdownRenderer
                                             content={translatedText || msg.text}
                                             mentions={msg.mentions}

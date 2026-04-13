@@ -52,7 +52,7 @@ const SettingsPage = () => {
     }
 
     return (
-        <div className="min-h-screen w-full bg-background relative overflow-hidden flex items-center justify-center p-4" >
+        <div className="h-full w-full bg-background relative overflow-y-auto flex items-center justify-center p-4" >
 
             {/* Ambient Background */}
             < div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none" >

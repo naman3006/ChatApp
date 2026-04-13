@@ -50,7 +50,7 @@ const JoinPage = () => {
 
     if (loading) {
         return (
-            <div className="h-screen flex items-center justify-center bg-[#0a0a0a] text-white">
+            <div className="h-full flex items-center justify-center bg-[#0a0a0a] text-white">
                 <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
             </div>
         );
@@ -58,7 +58,7 @@ const JoinPage = () => {
 
     if (error) {
         return (
-            <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] text-white gap-4">
+            <div className="h-full flex flex-col items-center justify-center bg-[#0a0a0a] text-white gap-4">
                 <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
                     <AlertTriangle className="w-8 h-8 text-red-500" />
                 </div>
@@ -72,7 +72,7 @@ const JoinPage = () => {
     }
 
     return (
-        <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] text-white p-4 relative overflow-hidden">
+        <div className="h-full flex flex-col items-center justify-center bg-[#0a0a0a] text-white p-4 relative overflow-y-auto">
             {/* Background Ambience */}
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-emerald-900/10 to-fuchsia-900/10 pointer-events-none" />
 

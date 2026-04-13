@@ -59,14 +59,14 @@ export const UserProfilePage = () => {
 
     if (!user) {
         return (
-            <div className="h-screen w-full flex items-center justify-center bg-background text-foreground">
+            <div className="h-full w-full flex items-center justify-center bg-background text-foreground">
                 <p>User not found. <button onClick={() => navigate("/")} className="text-violet-400 underline">Go Back</button></p>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex justify-center p-4">
+        <div className="h-full bg-background text-foreground flex justify-center p-4 overflow-y-auto">
             <div className="w-full max-w-2xl bg-card rounded-2xl border border-border overflow-hidden shadow-2xl relative flex flex-col">
 
                 {/* Back Button */}

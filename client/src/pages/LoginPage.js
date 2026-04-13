@@ -35,7 +35,7 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-hidden perspective-1000">
+    <div className="h-full w-full bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-y-auto perspective-1000">
 
       {/* 3D Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

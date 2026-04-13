@@ -45,7 +45,7 @@ function App() {
   }
 
   return (
-    <div className="bg-[url('../src/chat-assets/bgImage.svg')] bg-contain">
+    <div className="h-full overflow-hidden bg-[url('../src/chat-assets/bgImage.svg')] bg-cover bg-center">
       <Toaster />
       <VideoCall />
       <CallNotification />
